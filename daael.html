@@ -535,15 +535,56 @@
           <div class="math-block">x<sub>canonical</sub> = min(x, RC(x)) &nbsp;[lexicographic]<br><br>h<sub>i</sub>(Chunk) = min<sub>x∈Chunk</sub> { hash<sub>i</sub>(x<sub>canonical</sub>) }</div>
           <p>The canonical form is orientation-invariant: a chunk and its reverse complement produce the <strong>identical sketch vector</strong> S = [h₁, h₂, …, hₕ].</p>
         </div>
-        <div class="math-card">
-          <h3>Algorithm Complexity Comparison</h3>
+        <div class="math-card" style="border-color: var(--cage); box-shadow: 0 4px 24px var(--cage-glow);">
+          <h3 style="font-size: 15px; margin-bottom: 16px;">🧬 Comprehensive Algorithm Comparison Window</h3>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+            <!-- DNACompress -->
+            <div style="background: var(--bg4); border: 1px solid var(--border); padding: 14px; border-radius: 10px;">
+              <div style="color: #cbd5e1; font-weight: 700; font-size: 13px; margin-bottom: 6px;">DNACompress</div>
+              <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">Uses PatternHunter to find exact/approximate repeats, then encodes non-repeats using a 2-bit or Huffman model.</div>
+              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 9px;">
+                <span style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">Search: Suffix Trees</span>
+                <span style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">Time: O(N log N)</span>
+              </div>
+            </div>
+            <!-- BioCompress -->
+            <div style="background: var(--bg4); border: 1px solid var(--greedy-glow); padding: 14px; border-radius: 10px; border-left: 3px solid var(--greedy);">
+              <div style="color: var(--greedy); font-weight: 700; font-size: 13px; margin-bottom: 6px;">BioCompress / BioCompress-2</div>
+              <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">Sliding window (Ziv-Lempel style) finding longest exact repeats. BioCompress-2 adds 2nd order Markov models.</div>
+              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 9px;">
+                <span style="background: var(--greedy-glow); color: var(--greedy); padding: 2px 6px; border-radius: 4px;">Search: Greedy Ziv-Lempel</span>
+                <span style="background: var(--greedy-glow); color: var(--greedy); padding: 2px 6px; border-radius: 4px;">Time: O(N²)</span>
+              </div>
+            </div>
+            <!-- GenCompress -->
+            <div style="background: var(--bg4); border: 1px solid var(--dp-glow); padding: 14px; border-radius: 10px; border-left: 3px solid var(--dp);">
+              <div style="color: var(--dp); font-weight: 700; font-size: 13px; margin-bottom: 6px;">GenCompress</div>
+              <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">One-pass algorithm using dynamic programming to find optimal approximate repeats with edit operations.</div>
+              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 9px;">
+                <span style="background: var(--dp-glow); color: var(--dp); padding: 2px 6px; border-radius: 4px;">Search: Full DP Matrix</span>
+                <span style="background: var(--dp-glow); color: var(--dp); padding: 2px 6px; border-radius: 4px;">Time: O(N²)</span>
+              </div>
+            </div>
+            <!-- CAGE -->
+            <div style="background: var(--cage-glow); border: 1px solid var(--cage); padding: 14px; border-radius: 10px; box-shadow: inset 0 0 20px rgba(0,212,170,0.05);">
+              <div style="color: var(--cage); font-weight: 700; font-size: 13px; margin-bottom: 6px;">RC-Aware CAGE (Proposed)</div>
+              <div style="font-size: 11px; color: var(--text); margin-bottom: 8px;">Concurrent MinHash LSH chunking mapping mutations and reverse-complements in O(1) bucket lookups.</div>
+              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 9px;">
+                <span style="background: rgba(0,212,170,0.2); color: var(--cage); padding: 2px 6px; border-radius: 4px;">Search: MinHash LSH</span>
+                <span style="background: rgba(0,212,170,0.2); color: var(--cage); padding: 2px 6px; border-radius: 4px;">Time: O(N log N)</span>
+              </div>
+            </div>
+          </div>
+
           <table class="complexity-table">
-            <thead><tr><th>Algorithm</th><th>Time</th><th>Space</th><th>RC-Aware</th><th>Mutation-Aware</th></tr></thead>
+            <thead><tr><th>Algorithm</th><th>Time</th><th>Space</th><th>RC-Aware</th><th>Mutation-Aware</th><th>Approach</th></tr></thead>
             <tbody>
-              <tr><td style="color:var(--cage)">CAGE</td><td style="color:var(--cage)">O(N log N)</td><td style="color:var(--cage)">O(N)</td><td style="color:var(--cage)">✔ Canonical k-mers</td><td style="color:var(--cage)">✔ Edit scripts</td></tr>
-              <tr><td style="color:var(--greedy)">BioCompress</td><td style="color:var(--greedy)">O(N²)</td><td style="color:var(--greedy)">O(N)</td><td style="color:var(--greedy)">✔ (partial)</td><td>✗</td></tr>
-              <tr><td style="color:var(--dp)">GenCompress</td><td style="color:var(--dp)">O(N²)</td><td style="color:var(--dp)">O(N²)</td><td>✗</td><td style="color:var(--dp)">✔ Full DP</td></tr>
-              <tr><td style="color:var(--muted)">Flat 2-bit</td><td>O(N)</td><td>O(N)</td><td>✗</td><td>✗</td></tr>
+              <tr style="background: var(--cage-glow);"><td style="color:var(--cage); font-weight: 700;">CAGE</td><td style="color:var(--cage)">O(N log N)</td><td style="color:var(--cage)">O(N)</td><td style="color:var(--cage)">✔ Canonical k-mers</td><td style="color:var(--cage)">✔ Edit scripts</td><td style="color:var(--cage)">Probabilistic LSH</td></tr>
+              <tr><td style="color:#cbd5e1">DNACompress</td><td style="color:#cbd5e1">O(N log N)</td><td style="color:#cbd5e1">O(N)</td><td style="color:#cbd5e1">✔ (PatternHunter)</td><td style="color:#cbd5e1">✔ (approximate)</td><td style="color:#cbd5e1">Suffix Trees</td></tr>
+              <tr><td style="color:var(--dp)">GenCompress</td><td style="color:var(--dp)">O(N²)</td><td style="color:var(--dp)">O(N²)</td><td>✗</td><td style="color:var(--dp)">✔ Full DP</td><td style="color:var(--dp)">DP Edit Matrix</td></tr>
+              <tr><td style="color:var(--greedy)">BioCompress</td><td style="color:var(--greedy)">O(N²)</td><td style="color:var(--greedy)">O(N)</td><td style="color:var(--greedy)">✔ (partial)</td><td>✗ (exact only)</td><td style="color:var(--greedy)">Ziv-Lempel Window</td></tr>
+              <tr><td style="color:var(--muted)">Flat 2-bit</td><td>O(N)</td><td>O(N)</td><td>✗</td><td>✗</td><td>Baseline</td></tr>
             </tbody>
           </table>
         </div>
@@ -1327,9 +1368,15 @@ function renderBuckets() {
   const list = document.getElementById('bkt-list');
   const detail = document.getElementById('bkt-detail');
 
-  if (!results || !results.cage.buckets.length) {
-    list.innerHTML = '<div class="placeholder">Run the pipeline to generate buckets. Tip: use a repetitive preset like "Synthetic".</div>';
-    detail.innerHTML = '<div style="font-size:15px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:10px">LSH Bucket Detail</div><div class="placeholder">No buckets yet.</div>';
+  if (!results) {
+    list.innerHTML = '<div class="placeholder">Run the pipeline first to see LSH buckets.</div>';
+    detail.innerHTML = '<div style="font-size:15px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:10px">LSH Bucket Detail</div><div class="placeholder">Waiting for execution...</div>';
+    return;
+  }
+
+  if (!results.cage.buckets.length) {
+    list.innerHTML = '<div style="padding: 16px; text-align: center;"><div style="font-size: 32px; margin-bottom: 8px;">🪣</div><strong style="color:var(--greedy); font-size: 13px;">0 Buckets Found</strong><div style="font-size: 11.5px; color: var(--muted); margin-top: 8px; line-height: 1.5;">The algorithm found no approximate repeats with the current hyperparameters.</div><div style="background: var(--bg4); border: 1px dashed var(--border2); padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 11px; color: var(--text); text-align: left;"><strong>💡 Try this instead:</strong><ul style="margin-top: 6px; padding-left: 16px; color: var(--dim);"><li>Select a highly repetitive preset (like "Synthetic" or "RC Repeats").</li><li>Lower the <strong>Block Size (L)</strong> slider.</li><li>Lower the <strong>LSH Bands (b)</strong> slider to increase collision probability.</li></ul></div></div>';
+    detail.innerHTML = '<div style="font-size:15px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:10px">LSH Bucket Detail</div><div class="placeholder" style="color:var(--muted)">No collisions to display.<br><br>The algorithm reverted to literal encoding for this sequence because no blocks shared enough identical Canonical MinHash signatures.</div>';
     return;
   }
 
