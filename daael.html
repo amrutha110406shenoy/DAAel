@@ -349,7 +349,6 @@
   <div class="nav-tabs" style="overflow-x: auto; white-space: nowrap; padding-right: 20px;">
     <button class="nav-tab active" id="tab-dashboard" onclick="setTab('dashboard',this)">📊 Dashboard</button>
     <button class="nav-tab" id="tab-simulator" onclick="setTab('simulator',this)">🔬 CAGE Walkthrough</button>
-    <button class="nav-tab" id="tab-buckets" onclick="setTab('buckets',this)">🪣 LSH Buckets</button>
     <button class="nav-tab" id="tab-dnacomp" onclick="setTab('dnacomp',this)">🧬 DNACompress</button>
     <button class="nav-tab" id="tab-biocomp" onclick="setTab('biocomp',this)">🔄 BioCompress</button>
     <button class="nav-tab" id="tab-gencomp" onclick="setTab('gencomp',this)">⚙️ GenCompress</button>
@@ -498,6 +497,11 @@
           <div class="wp-title">Grammar Rules</div>
           <div class="wp-sub">Edit-script compression</div>
         </div>
+        <div class="wp-step" id="wp-5" onclick="gotoStage(5)">
+          <div class="wp-num">STEP 05</div>
+          <div class="wp-title">LSH Explorer</div>
+          <div class="wp-sub">Inspect buckets & hits</div>
+        </div>
       </div>
 
       <!-- Stage content panel -->
@@ -511,18 +515,7 @@
       </div>
     </div>
 
-    <!-- ===== LSH BUCKETS ===== -->
-    <div class="view" id="view-buckets">
-      <div class="bucket-layout">
-        <div class="bkt-list" id="bkt-list">
-          <div class="placeholder">Run the pipeline first to see LSH buckets.</div>
-        </div>
-        <div class="bkt-detail" id="bkt-detail">
-          <div style="font-size:15px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:10px">LSH Bucket Detail</div>
-          <div class="placeholder">Select a bucket on the left to inspect alignment and grammar rules.</div>
-        </div>
-      </div>
-    </div>
+
 
     <!-- ===== MATH / THEORY ===== -->
     <div class="view" id="view-math">
@@ -617,33 +610,87 @@
 
     <!-- ===== DNACOMPRESS ===== -->
     <div class="view" id="view-dnacomp">
-      <div style="padding: 24px;">
-        <div class="math-card" style="border-color: #cbd5e1;">
-          <h3 style="color: #cbd5e1;">🧬 DNACompress Visualization</h3>
-          <p>DNACompress uses <strong>PatternHunter</strong> (suffix trees/arrays) to find all exact and approximate repeats globally before encoding them.</p>
-          <div id="vis-dnacomp-content" style="margin-top: 20px;"></div>
+      <div class="walk-progress" id="wp-dna">
+        <div class="wp-step active" id="wp-dna-1" onclick="gotoDnaStage(1)">
+          <div class="wp-num">STEP 01</div>
+          <div class="wp-title">PatternHunter</div>
+          <div class="wp-sub">Find global seeds</div>
+        </div>
+        <div class="wp-step" id="wp-dna-2" onclick="gotoDnaStage(2)">
+          <div class="wp-num">STEP 02</div>
+          <div class="wp-title">Seed Extension</div>
+          <div class="wp-sub">Grow approximate matches</div>
+        </div>
+        <div class="wp-step" id="wp-dna-3" onclick="gotoDnaStage(3)">
+          <div class="wp-num">STEP 03</div>
+          <div class="wp-title">Encoding</div>
+          <div class="wp-sub">Repeats & non-repeats</div>
+        </div>
+      </div>
+      <div class="stage-container">
+        <div id="vis-dnacomp-content"></div>
+        <div class="stage-nav">
+          <button class="btn-stage" id="btn-dna-prev" onclick="stepDnaSim(-1)" disabled>← Previous Step</button>
+          <span class="stage-pill" id="stage-dna-pill">Step 1 / 3</span>
+          <button class="btn-stage" id="btn-dna-next" onclick="stepDnaSim(1)">Next Step →</button>
         </div>
       </div>
     </div>
 
     <!-- ===== BIOCOMPRESS ===== -->
     <div class="view" id="view-biocomp">
-      <div style="padding: 24px;">
-        <div class="math-card" style="border-color: var(--greedy);">
-          <h3 style="color: var(--greedy);">🔄 BioCompress Visualization</h3>
-          <p>BioCompress uses a <strong>Ziv-Lempel sliding window</strong> to greedily find the longest <em>exact</em> match in the previously seen sequence.</p>
-          <div id="vis-biocomp-content" style="margin-top: 20px;"></div>
+      <div class="walk-progress" id="wp-bio">
+        <div class="wp-step active" id="wp-bio-1" onclick="gotoBioStage(1)">
+          <div class="wp-num">STEP 01</div>
+          <div class="wp-title">Sliding Window</div>
+          <div class="wp-sub">Dictionary & Buffer</div>
+        </div>
+        <div class="wp-step" id="wp-bio-2" onclick="gotoBioStage(2)">
+          <div class="wp-num">STEP 02</div>
+          <div class="wp-title">Exact Match</div>
+          <div class="wp-sub">Greedy search</div>
+        </div>
+        <div class="wp-step" id="wp-bio-3" onclick="gotoBioStage(3)">
+          <div class="wp-num">STEP 03</div>
+          <div class="wp-title">Encoding</div>
+          <div class="wp-sub">Copy & Literals</div>
+        </div>
+      </div>
+      <div class="stage-container">
+        <div id="vis-biocomp-content"></div>
+        <div class="stage-nav">
+          <button class="btn-stage" id="btn-bio-prev" onclick="stepBioSim(-1)" disabled>← Previous Step</button>
+          <span class="stage-pill" id="stage-bio-pill">Step 1 / 3</span>
+          <button class="btn-stage" id="btn-bio-next" onclick="stepBioSim(1)">Next Step →</button>
         </div>
       </div>
     </div>
 
     <!-- ===== GENCOMPRESS ===== -->
     <div class="view" id="view-gencomp">
-      <div style="padding: 24px;">
-        <div class="math-card" style="border-color: var(--dp);">
-          <h3 style="color: var(--dp);">⚙️ GenCompress Visualization</h3>
-          <p>GenCompress uses a <strong>Dynamic Programming (DP) edit matrix</strong> to find the optimal <em>approximate</em> match (allowing substitutions, insertions, and deletions).</p>
-          <div id="vis-gencomp-content" style="margin-top: 20px;"></div>
+      <div class="walk-progress" id="wp-gen">
+        <div class="wp-step active" id="wp-gen-1" onclick="gotoGenStage(1)">
+          <div class="wp-num">STEP 01</div>
+          <div class="wp-title">DP Matrix Setup</div>
+          <div class="wp-sub">Allowing mutations</div>
+        </div>
+        <div class="wp-step" id="wp-gen-2" onclick="gotoGenStage(2)">
+          <div class="wp-num">STEP 02</div>
+          <div class="wp-title">Approximate Match</div>
+          <div class="wp-sub">Edit distance scan</div>
+        </div>
+        <div class="wp-step" id="wp-gen-3" onclick="gotoGenStage(3)">
+          <div class="wp-num">STEP 03</div>
+          <div class="wp-title">Edit Scripting</div>
+          <div class="wp-sub">Replace(pos, len, edits)</div>
+        </div>
+      </div>
+      <div class="stage-container">
+        <div id="vis-gencomp-content"></div>
+        <div class="stage-nav">
+          <button class="btn-stage" id="btn-gen-prev" onclick="stepGenSim(-1)" disabled>← Previous Step</button>
+          <span class="stage-pill" id="stage-gen-pill">Step 1 / 3</span>
+          <button class="btn-stage" id="btn-gen-next" onclick="stepGenSim(1)">Next Step →</button>
         </div>
       </div>
     </div>
@@ -989,90 +1036,326 @@ function setTab(id, btn) {
   btn.classList.add('active');
   document.getElementById('view-' + id).classList.add('active');
   if (id === 'simulator') renderSim();
-  if (id === 'buckets') renderBuckets();
   if (id === 'dnacomp') renderDNAComp();
   if (id === 'biocomp') renderBioComp();
   if (id === 'gencomp') renderGenComp();
 }
 
+let bioStage = 1, genStage = 1, dnaStage = 1;
+
+function gotoBioStage(n) { bioStage = n; renderBioComp(); }
+function stepBioSim(d) { bioStage = Math.max(1, Math.min(3, bioStage + d)); renderBioComp(); }
+
+function gotoGenStage(n) { genStage = n; renderGenComp(); }
+function stepGenSim(d) { genStage = Math.max(1, Math.min(3, genStage + d)); renderGenComp(); }
+
+function gotoDnaStage(n) { dnaStage = n; renderDNAComp(); }
+function stepDnaSim(d) { dnaStage = Math.max(1, Math.min(3, dnaStage + d)); renderDNAComp(); }
+
 function renderDNAComp() {
-  const div = document.getElementById('vis-dnacomp-content');
-  if (!activeDna) return;
-  // Simple visualization of global seed finding
-  let html = `<div style="font-family:var(--mono); font-size:12px; margin-bottom:16px;">Finding seeds of length 8 in sequence of length ${activeDna.length}...</div>`;
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('wp-dna-' + i);
+    if(el) { el.classList.toggle('active', i === dnaStage); el.classList.toggle('done', i < dnaStage); }
+  }
+  document.getElementById('btn-dna-prev').disabled = dnaStage === 1;
+  document.getElementById('btn-dna-next').disabled = dnaStage === 3;
+  document.getElementById('stage-dna-pill').textContent = 'Step ' + dnaStage + ' / 3';
+
+  const container = document.getElementById('vis-dnacomp-content');
+  if (!activeDna) { container.innerHTML = '<div class="placeholder">Load a sequence first.</div>'; return; }
+  
+  const dna = activeDna.substring(0, Math.min(activeDna.length, 160)); // Keep it simple for viz
+  let html = '';
+
+  // Pre-calculate seeds for consistency across stages
   const seeds = {};
-  for(let i=0; i<=activeDna.length-8; i+=4) {
-    const s = activeDna.substring(i, i+8);
+  for(let i=0; i<=dna.length-8; i+=4) {
+    const s = dna.substring(i, i+8);
     if(!seeds[s]) seeds[s] = [];
     seeds[s].push(i);
   }
-  let hits = 0;
-  for(const [k, arr] of Object.entries(seeds)) {
-    if(arr.length > 1) {
-      hits++;
-      html += `<div style="background:var(--bg4); padding:10px; border-radius:6px; margin-bottom:8px; border-left:3px solid #cbd5e1;">
-        <strong style="color:#cbd5e1;">Seed: ${k}</strong> found at positions: ${arr.join(', ')}
-      </div>`;
+  let hits = Object.entries(seeds).filter(x => x[1].length > 1);
+
+  if (dnaStage === 1) {
+    html = `
+      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid #cbd5e1;">
+        <div class="sb-label" style="color:#cbd5e1">Stage 01 — PatternHunter</div>
+        <div class="sb-title">Finding global seeds with Suffix Trees</div>
+        <div class="sb-analogy"><strong>Analogy:</strong> Instead of sliding a window blindly from left to right, DNACompress builds a massive index (a suffix tree) of the entire sequence all at once, allowing it to instantly find all locations of any 8-letter "seed" word globally.</div>
+      </div>
+      <div class="stage-body">
+        <div class="vis-panel">
+          <div class="vis-title">🔍 Exact Seeds (Length 8) found in sequence</div>
+          <div style="font-family:var(--mono); font-size:12px; margin-bottom:12px;">`;
+    
+    if (hits.length > 0) {
+      hits.slice(0, 5).forEach(([k, arr]) => {
+        html += `<div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:6px; border-left:3px solid #cbd5e1;">
+          <strong style="color:#cbd5e1;">Seed: ${k}</strong> globally found at positions: ${arr.join(', ')}
+        </div>`;
+      });
+      if(hits.length > 5) html += `<div style="font-size:11px; color:var(--dim)">...and ${hits.length - 5} more seed groups.</div>`;
+    } else {
+      html += `<div class="placeholder">No global repeats of length 8 found in this sequence segment.</div>`;
     }
+    html += `</div></div></div>`;
+  } 
+  else if (dnaStage === 2) {
+    html = `
+      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid #cbd5e1;">
+        <div class="sb-label" style="color:#cbd5e1">Stage 02 — Seed Extension</div>
+        <div class="sb-title">Growing seeds into approximate matches</div>
+        <div class="sb-analogy"><strong>Rule:</strong> Once a seed is found at two locations, DNACompress extends the match left and right, allowing a few mismatches, until the similarity drops below a certain threshold.</div>
+      </div>
+      <div class="stage-body">
+        <div class="vis-panel">
+          <div class="vis-title">🌱 Extending the best seed</div>`;
+          
+    if (hits.length > 0) {
+      const best = hits[0];
+      const p1 = best[1][0], p2 = best[1][1];
+      html += `
+        <div style="font-family:var(--mono); font-size:13px; line-height: 1.6; margin-bottom:12px;">
+          <span style="color:var(--muted)">Original Seed:</span> <strong style="color:#cbd5e1">${best[0]}</strong><br>
+          <span style="color:var(--muted)">Pos 1:</span> ...${dna.substring(Math.max(0, p1-4), p1)}<strong style="background:rgba(255,255,255,0.15); color:#fff">${dna.substring(p1, p1+8)}</strong>${dna.substring(p1+8, Math.min(dna.length, p1+12))}...<br>
+          <span style="color:var(--muted)">Pos 2:</span> ...${dna.substring(Math.max(0, p2-4), p2)}<strong style="background:rgba(255,255,255,0.15); color:#fff">${dna.substring(p2, p2+8)}</strong>${dna.substring(p2+8, Math.min(dna.length, p2+12))}...<br>
+        </div>
+        <div class="rule-box" style="border-color:#cbd5e1;">
+          These flanking regions are compared and added to the match if similar.
+        </div>`;
+    } else {
+      html += `<div class="placeholder">No seeds to extend.</div>`;
+    }
+    html += `</div></div>`;
   }
-  if (hits === 0) html += `<div class="placeholder">No global repeats of length 8 found.</div>`;
-  div.innerHTML = html;
+  else if (dnaStage === 3) {
+    html = `
+      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid #cbd5e1;">
+        <div class="sb-label" style="color:#cbd5e1">Stage 03 — Final Encoding</div>
+        <div class="sb-title">Partitioning into Repeats and Non-Repeats</div>
+        <div class="sb-analogy">The sequence is split into regions of extended repeats (encoded as pointers + edits) and the remaining gaps are encoded as non-repeats using a 2-bit or Huffman model.</div>
+      </div>
+      <div class="stage-body">
+        <div class="vis-panel">
+          <div class="vis-title">📦 Final DNACompress Partition</div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+    
+    // Fake a partition based on the seeds
+    let i = 0;
+    while(i < dna.length) {
+      let matched = false;
+      for (const [k, arr] of hits) {
+        if (arr.includes(i) && arr[0] !== i) { // it's a copy of the first occurrence
+          html += `<div style="background:rgba(255,255,255,0.1); border:1px solid #cbd5e1; color:#cbd5e1; padding:4px 6px; border-radius:4px;">Repeat(${arr[0]}, 8)</div>`;
+          i += 8;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim)">${dna[i]}</div>`;
+        i++;
+      }
+    }
+    html += `</div></div></div>`;
+  }
+  container.innerHTML = html;
 }
 
 function renderBioComp() {
-  const div = document.getElementById('vis-biocomp-content');
-  if (!activeDna) return;
-  let html = `<div style="font-family:var(--mono); font-size:12px; margin-bottom:16px;">Greedy exact match scan...</div><div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('wp-bio-' + i);
+    if(el) { el.classList.toggle('active', i === bioStage); el.classList.toggle('done', i < bioStage); }
+  }
+  document.getElementById('btn-bio-prev').disabled = bioStage === 1;
+  document.getElementById('btn-bio-next').disabled = bioStage === 3;
+  document.getElementById('stage-bio-pill').textContent = 'Step ' + bioStage + ' / 3';
+
+  const container = document.getElementById('vis-biocomp-content');
+  if (!activeDna) { container.innerHTML = '<div class="placeholder">Load a sequence first.</div>'; return; }
   
-  let i = 0;
-  while(i < activeDna.length && i < 200) {
+  const dna = activeDna.substring(0, Math.min(activeDna.length, 120)); // Keep it simple for viz
+  let html = '';
+
+  if (bioStage === 1) {
+    html = `
+      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--greedy);">
+        <div class="sb-label" style="color:var(--greedy)">Stage 01 — Dictionary & Buffer</div>
+        <div class="sb-title">Scanning with a sliding window</div>
+        <div class="sb-analogy"><strong>Analogy:</strong> BioCompress uses a Ziv-Lempel approach. As it reads the DNA from left to right, everything to the left is the "Dictionary" (past), and everything to the right is the "Lookahead Buffer" (future).</div>
+      </div>
+      <div class="stage-body">
+        <div class="vis-panel">
+          <div class="vis-title">🔍 Example State at index 40</div>
+          <div style="font-family:var(--mono); font-size:14px; letter-spacing:2px; word-wrap:break-word;">
+            <span style="color:var(--muted); text-decoration:underline; text-decoration-color:var(--greedy); text-decoration-thickness:2px;" title="Dictionary (Past)">${dna.substring(0,40)}</span><span style="background:var(--greedy); color:#000; padding:2px; font-weight:bold;" title="Cursor">|</span><span style="color:var(--text);" title="Lookahead (Future)">${dna.substring(40)}</span>
+          </div>
+          <div style="font-size:11px; color:var(--dim); margin-top:12px;">Underlined = Dictionary (Already seen) | Bright text = Lookahead buffer (To be compressed)</div>
+        </div>
+      </div>`;
+  } 
+  else if (bioStage === 2) {
+    // Find a good match to show
+    let i = 40; if (i >= dna.length) i = Math.floor(dna.length / 2);
     let bestLen = 0, bestPos = -1;
     for(let j=0; j<i; j++) {
-      let l = 0;
-      while(i+l < activeDna.length && activeDna[j+l] === activeDna[i+l]) l++;
+      let l = 0; while(i+l < dna.length && dna[j+l] === dna[i+l]) l++;
       if (l > bestLen) { bestLen = l; bestPos = j; }
     }
-    if (bestLen >= 4) {
-      html += `<div style="background:var(--greedy-glow); border:1px solid var(--greedy); color:var(--greedy); padding:4px 6px; border-radius:4px;" title="Match length ${bestLen} at pos ${bestPos}">Copy(${i-bestPos}, ${bestLen})</div>`;
-      i += bestLen;
-    } else {
-      html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px;">${activeDna[i]}</div>`;
-      i++;
-    }
+    
+    html = `
+      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--greedy);">
+        <div class="sb-label" style="color:var(--greedy)">Stage 02 — Greedy Exact Match</div>
+        <div class="sb-title">Finding the longest identical past string</div>
+        <div class="sb-analogy"><strong>Rule:</strong> It searches the Dictionary for the absolutely longest exact match of the prefix in the Lookahead buffer. No mutations allowed!</div>
+      </div>
+      <div class="stage-body">
+        <div class="vis-panel">
+          <div class="vis-title">🎯 Match found for prefix at index ${i}</div>
+          <div style="font-family:var(--mono); font-size:14px; letter-spacing:2px; word-wrap:break-word; margin-bottom:12px;">
+            <span style="color:var(--muted);">${dna.substring(0,bestPos)}</span><span style="background:var(--greedy-glow); color:var(--greedy); border-bottom:2px solid var(--greedy); font-weight:bold;">${dna.substring(bestPos,bestPos+bestLen)}</span><span style="color:var(--muted);">${dna.substring(bestPos+bestLen,i)}</span><span style="background:var(--greedy); color:#000; padding:2px; font-weight:bold;">|</span><span style="background:var(--greedy-glow); color:var(--greedy); border-bottom:2px solid var(--greedy); font-weight:bold;">${dna.substring(i,i+bestLen)}</span><span style="color:var(--text);">${dna.substring(i+bestLen)}</span>
+          </div>
+          <div class="rule-box" style="border-color:var(--greedy);">
+            Match found at position ${bestPos} with length ${bestLen}
+          </div>
+        </div>
+      </div>`;
   }
-  if (activeDna.length > 200) html += `<div>...</div>`;
-  html += `</div>`;
-  div.innerHTML = html;
+  else if (bioStage === 3) {
+    html = `
+      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--greedy);">
+        <div class="sb-label" style="color:var(--greedy)">Stage 03 — Encoding Stream</div>
+        <div class="sb-title">Translating the DNA into Copy & Literal operations</div>
+        <div class="sb-analogy">Instead of ATCG, the output becomes a sequence of <code>Copy(distance, length)</code> for repeats, and <code>Literal(base)</code> for non-repeats.</div>
+      </div>
+      <div class="stage-body">
+        <div class="vis-panel">
+          <div class="vis-title">📦 Final BioCompress Stream</div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+    
+    let i = 0;
+    while(i < dna.length) {
+      let bestLen = 0, bestPos = -1;
+      for(let j=0; j<i; j++) {
+        let l = 0; while(i+l < dna.length && dna[j+l] === dna[i+l]) l++;
+        if (l > bestLen) { bestLen = l; bestPos = j; }
+      }
+      if (bestLen >= 4) {
+        html += `<div style="background:var(--greedy-glow); border:1px solid var(--greedy); color:var(--greedy); padding:4px 6px; border-radius:4px;" title="Match length ${bestLen} at pos ${bestPos}">Copy(${i-bestPos}, ${bestLen})</div>`;
+        i += bestLen;
+      } else {
+        html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim)">${dna[i]}</div>`;
+        i++;
+      }
+    }
+    html += `</div>
+        </div>
+      </div>`;
+  }
+  container.innerHTML = html;
 }
 
 function renderGenComp() {
-  const div = document.getElementById('vis-gencomp-content');
-  if (!activeDna) return;
-  let html = `<div style="font-family:var(--mono); font-size:12px; margin-bottom:16px;">DP approximate match scan (allows edits)...</div><div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('wp-gen-' + i);
+    if(el) { el.classList.toggle('active', i === genStage); el.classList.toggle('done', i < genStage); }
+  }
+  document.getElementById('btn-gen-prev').disabled = genStage === 1;
+  document.getElementById('btn-gen-next').disabled = genStage === 3;
+  document.getElementById('stage-gen-pill').textContent = 'Step ' + genStage + ' / 3';
+
+  const container = document.getElementById('vis-gencomp-content');
+  if (!activeDna) { container.innerHTML = '<div class="placeholder">Load a sequence first.</div>'; return; }
   
-  let i = 0;
-  while(i < activeDna.length && i < 200) {
+  const dna = activeDna.substring(0, Math.min(activeDna.length, 120)); // Keep it simple for viz
+  let html = '';
+
+  if (genStage === 1) {
+    html = `
+      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--dp);">
+        <div class="sb-label" style="color:var(--dp)">Stage 01 — DP Matrix Setup</div>
+        <div class="sb-title">Allowing mutations via Edit Distance</div>
+        <div class="sb-analogy"><strong>Analogy:</strong> Unlike BioCompress which gives up if a single letter is wrong, GenCompress builds an Edit Distance Matrix (like spellcheck algorithms) to see if a string is a match with just a few typos (substitutions/insertions/deletions).</div>
+      </div>
+      <div class="stage-body">
+        <div class="vis-panel">
+          <div class="vis-title">🔍 Example Matrix setup</div>
+          <div style="font-family:var(--mono); font-size:12px; line-height: 1.6; color:var(--text);">
+            Target: <code>ACGTACGT</code><br>
+            Query:  <code>AC<span style="color:#fca5a5">T</span>TACGT</code> (1 substitution)<br><br>
+            GenCompress calculates the optimal path through the O(N²) DP matrix to determine the minimum number of edit operations required. This is extremely slow but yields the highest compression ratio.
+          </div>
+        </div>
+      </div>`;
+  } 
+  else if (genStage === 2) {
+    let i = 40; if (i >= dna.length) i = Math.floor(dna.length / 2);
     let bestLen = 0, bestPos = -1, bestEdits = 0;
     for(let j=0; j<i; j++) {
       let l = 0, edits = 0;
-      while(i+l < activeDna.length) {
-        if (activeDna[j+l] !== activeDna[i+l]) edits++;
-        if (edits > 1) break; // allow max 1 edit for visualization
+      while(i+l < dna.length) {
+        if (dna[j+l] !== dna[i+l]) edits++;
+        if (edits > 1) break; // Allow 1 edit
         l++;
       }
       if (l > bestLen) { bestLen = l; bestPos = j; bestEdits = edits; }
     }
-    if (bestLen >= 6) {
-      html += `<div style="background:var(--dp-glow); border:1px solid var(--dp); color:var(--dp); padding:4px 6px; border-radius:4px;" title="Approx Match len ${bestLen} at pos ${bestPos} with ${bestEdits} edits">Approx(${i-bestPos}, ${bestLen}, ${bestEdits}e)</div>`;
-      i += bestLen;
-    } else {
-      html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px;">${activeDna[i]}</div>`;
-      i++;
-    }
+    
+    html = `
+      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--dp);">
+        <div class="sb-label" style="color:var(--dp)">Stage 02 — Approximate Match Search</div>
+        <div class="sb-title">Finding optimal matches with edit operations</div>
+        <div class="sb-analogy"><strong>Rule:</strong> It searches the Dictionary for a match, allowing a penalty (e.g. up to 1 mutation).</div>
+      </div>
+      <div class="stage-body">
+        <div class="vis-panel">
+          <div class="vis-title">🎯 Match found for prefix at index ${i}</div>
+          <div style="font-family:var(--mono); font-size:14px; letter-spacing:2px; word-wrap:break-word; margin-bottom:12px;">
+            <span style="color:var(--muted);">${dna.substring(0,bestPos)}</span><span style="background:var(--dp-glow); color:var(--dp); border-bottom:2px solid var(--dp); font-weight:bold;">${dna.substring(bestPos,bestPos+bestLen)}</span><span style="color:var(--muted);">${dna.substring(bestPos+bestLen,i)}</span><span style="background:var(--dp); color:#000; padding:2px; font-weight:bold;">|</span><span style="background:var(--dp-glow); color:var(--dp); border-bottom:2px solid var(--dp); font-weight:bold;">${dna.substring(i,i+bestLen)}</span><span style="color:var(--text);">${dna.substring(i+bestLen)}</span>
+          </div>
+          <div class="rule-box" style="border-color:var(--dp);">
+            Approx match found at position ${bestPos} (length ${bestLen}) with ${bestEdits} edit(s)
+          </div>
+        </div>
+      </div>`;
   }
-  if (activeDna.length > 200) html += `<div>...</div>`;
-  html += `</div>`;
-  div.innerHTML = html;
+  else if (genStage === 3) {
+    html = `
+      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--dp);">
+        <div class="sb-label" style="color:var(--dp)">Stage 03 — Edit Script Generation</div>
+        <div class="sb-title">Translating the DNA into Replace operations</div>
+        <div class="sb-analogy">The output becomes a sequence of <code>Approx(distance, length, edits)</code> and Literals.</div>
+      </div>
+      <div class="stage-body">
+        <div class="vis-panel">
+          <div class="vis-title">📦 Final GenCompress Stream (with up to 1 edit)</div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+    
+    let i = 0;
+    while(i < dna.length) {
+      let bestLen = 0, bestPos = -1, bestEdits = 0;
+      for(let j=0; j<i; j++) {
+        let l = 0, edits = 0;
+        while(i+l < dna.length) {
+          if (dna[j+l] !== dna[i+l]) edits++;
+          if (edits > 1) break;
+          l++;
+        }
+        if (l > bestLen) { bestLen = l; bestPos = j; bestEdits = edits; }
+      }
+      if (bestLen >= 5) {
+        html += `<div style="background:var(--dp-glow); border:1px solid var(--dp); color:var(--dp); padding:4px 6px; border-radius:4px;" title="Approx Match len ${bestLen} at pos ${bestPos} with ${bestEdits} edits">Approx(${i-bestPos}, ${bestLen}, ${bestEdits}e)</div>`;
+        i += bestLen;
+      } else {
+        html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim)">${dna[i]}</div>`;
+        i++;
+      }
+    }
+    html += `</div>
+        </div>
+      </div>`;
+  }
+  container.innerHTML = html;
 }
 
 function triggerDebounce() {
@@ -1123,7 +1406,6 @@ function runPipeline() {
   const activeView = document.querySelector('.view.active');
   if (activeView) {
     if (activeView.id === 'view-simulator') renderSim();
-    if (activeView.id === 'view-buckets') renderBuckets();
     if (activeView.id === 'view-dnacomp') renderDNAComp();
     if (activeView.id === 'view-biocomp') renderBioComp();
     if (activeView.id === 'view-gencomp') renderGenComp();
@@ -1171,18 +1453,20 @@ function doBenchmark() {
 // ═══════════════════════════════════════
 
 function gotoStage(n) { simStage = n; renderSim(); }
-function stepSim(d) { simStage = Math.max(1, Math.min(4, simStage + d)); renderSim(); }
+function stepSim(d) { simStage = Math.max(1, Math.min(5, simStage + d)); renderSim(); }
 
 function renderSim() {
   // Update progress bar
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const el = document.getElementById('wp-' + i);
-    el.classList.toggle('active', i === simStage);
-    el.classList.toggle('done', i < simStage);
+    if(el) {
+      el.classList.toggle('active', i === simStage);
+      el.classList.toggle('done', i < simStage);
+    }
   }
   document.getElementById('btn-prev').disabled = simStage === 1;
-  document.getElementById('btn-next').disabled = simStage === 4;
-  document.getElementById('stage-pill').textContent = 'Step ' + simStage + ' / 4';
+  document.getElementById('btn-next').disabled = simStage === 5;
+  document.getElementById('stage-pill').textContent = 'Step ' + simStage + ' / 5';
 
   const container = document.getElementById('stage-content');
   container.innerHTML = '';
@@ -1490,6 +1774,25 @@ function renderSim() {
           The more repetitive the DNA (like genomes with tandem repeats), the bigger the savings.
         </div>
       </div>`;
+  }
+
+  // ─── STAGE 5: LSH BUCKET EXPLORER ─────────────────────────
+  else if (simStage === 5) {
+    container.innerHTML = `
+      <div class="stage-banner">
+        <div class="sb-label">Stage 05 — LSH Bucket Explorer</div>
+        <div class="sb-title">Inspect exactly which chunks collided in the Locality-Sensitive Hashing step</div>
+        <div class="sb-analogy">
+          <strong>Real-world analogy:</strong> This is like looking into the sorting bins at a post office. Each bin (bucket) contains envelopes (chunks) that look nearly identical. Here you can click on any bucket to see the exact sequence alignment and the resulting edit-scripts for the chunks that landed together.
+        </div>
+      </div>
+      <div class="bucket-layout" style="height: 400px; display: flex; gap: 10px; padding: 0 16px 16px 16px;">
+        <div class="bkt-list" id="bkt-list" style="width: 200px; overflow-y: auto;"></div>
+        <div class="bkt-detail" id="bkt-detail" style="flex: 1; overflow-y: auto;"></div>
+      </div>
+    `;
+    // Populate the newly injected divs with the existing bucket logic
+    renderBuckets();
   }
 }
 
