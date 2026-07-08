@@ -315,6 +315,24 @@
       color:var(--muted);}
     .aln-label.tpl{color:var(--cage);}
 
+    /* ANIMATION UI */
+    .anim-controls{display:flex;gap:8px;align-items:center;background:var(--bg3);padding:8px 12px;border-radius:6px;}
+    .btn-anim{background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:4px;cursor:pointer;font-weight:600;font-size:12px;}
+    .btn-anim:hover{background:var(--bg5);}
+    .btn-anim.active{background:var(--cage);color:#000;border-color:var(--cage);}
+    .btn-anim:disabled{opacity:0.5;cursor:not-allowed;}
+    .speed-select{background:var(--bg4);color:var(--text);border:1px solid var(--border);padding:4px;border-radius:4px;font-size:11px;}
+    
+    .anim-layout{display:flex;gap:16px;margin-top:12px;height:450px;}
+    .anim-main{flex:2;background:var(--bg3);border-radius:10px;padding:16px;border:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
+    .anim-side{flex:1;display:flex;flex-direction:column;gap:12px;min-width:300px;}
+    
+    .pseudo-box{background:#0f172a;border-radius:8px;padding:12px;font-family:var(--mono);font-size:11.5px;color:#94a3b8;border:1px solid var(--border);flex-grow:1;overflow-y:auto;line-height:1.6;}
+    .pseudo-line{padding:2px 8px;border-radius:4px;transition:all 0.15s;border-left:2px solid transparent;margin-bottom:2px;}
+    .pseudo-line.active{background:rgba(0,212,170,0.15);color:#fff;border-left:2px solid var(--cage);}
+    
+    .narration-box{background:var(--bg4);padding:14px;border-radius:8px;border-left:4px solid var(--cage);font-size:13px;line-height:1.5;color:var(--text);box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+
     /* MATH VIEW */
     .math-stack{display:flex;flex-direction:column;gap:16px;}
     .math-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:22px;}
@@ -473,44 +491,51 @@
       </div>
     </div>
 
-    <!-- ===== STEP WALKTHROUGH ===== -->
     <div class="view" id="view-simulator">
-      <!-- Stage selector tabs -->
-      <div class="walk-progress" id="walk-progress">
-        <div class="wp-step active" id="wp-1" onclick="gotoStage(1)">
-          <div class="wp-num">STEP 01</div>
-          <div class="wp-title">Read &amp; Chunk DNA</div>
-          <div class="wp-sub">Split into overlapping blocks</div>
-        </div>
-        <div class="wp-step" id="wp-2" onclick="gotoStage(2)">
-          <div class="wp-num">STEP 02</div>
-          <div class="wp-title">Extract k-mers &amp; RC</div>
-          <div class="wp-sub">Canonical MinHash sketching</div>
-        </div>
-        <div class="wp-step" id="wp-3" onclick="gotoStage(3)">
-          <div class="wp-num">STEP 03</div>
-          <div class="wp-title">LSH Banding</div>
-          <div class="wp-sub">O(1) bucket collision</div>
-        </div>
-        <div class="wp-step" id="wp-4" onclick="gotoStage(4)">
-          <div class="wp-num">STEP 04</div>
-          <div class="wp-title">Grammar Rules</div>
-          <div class="wp-sub">Edit-script compression</div>
-        </div>
-        <div class="wp-step" id="wp-5" onclick="gotoStage(5)">
-          <div class="wp-num">STEP 05</div>
-          <div class="wp-title">LSH Explorer</div>
-          <div class="wp-sub">Inspect buckets & hits</div>
-        </div>
+      <div class="anim-controls">
+        <button class="btn-anim" id="btn-simulator-play" onclick="anim.play()">▶ Play</button>
+        <button class="btn-anim active" id="btn-simulator-pause" onclick="anim.pause()">⏸ Pause</button>
+        <button class="btn-anim" id="btn-simulator-step" onclick="anim.stepForward()">⏭ Step</button>
+        <div style="flex-grow:1"></div>
+        <select class="speed-select" onchange="anim.setSpeed(this.value)">
+          <option value="1000">Slow</option>
+          <option value="400" selected>Normal</option>
+          <option value="100">Fast</option>
+        </select>
+        <button class="btn-anim" onclick="anim.start('simulator', runCageAnim)">🔄 Reset</button>
       </div>
-
-      <!-- Stage content panel -->
-      <div class="stage-container">
-        <div id="stage-content"></div>
-        <div class="stage-nav">
-          <button class="btn-stage" id="btn-prev" onclick="stepSim(-1)" disabled>← Previous Step</button>
-          <span class="stage-pill" id="stage-pill">Step 1 / 4</span>
-          <button class="btn-stage" id="btn-next" onclick="stepSim(1)">Next Step →</button>
+      
+      <div class="anim-layout">
+        <!-- Main Visualization Area -->
+        <div class="anim-main" id="stage-content">
+          <div class="placeholder">Click "Run All Algorithms" to start the visualization.</div>
+        </div>
+        
+        <!-- Sidebar for Pseudocode and Narration -->
+        <div class="anim-side">
+          <div class="pseudo-box" id="pseudo-simulator">
+            <div class="pseudo-line" id="p-cage-1">1 function CAGE(DNA, L, k, h, b, r):</div>
+            <div class="pseudo-line" id="p-cage-2">2   chunks = chunkSequence(DNA, L, L/2)</div>
+            <div class="pseudo-line" id="p-cage-3">3   for chunk in chunks:</div>
+            <div class="pseudo-line" id="p-cage-4">4     for i in 0 .. chunk.len-k:</div>
+            <div class="pseudo-line" id="p-cage-5">5       kmer = chunk[i..i+k]</div>
+            <div class="pseudo-line" id="p-cage-6">6       can = min(kmer, reverseComplement(kmer))</div>
+            <div class="pseudo-line" id="p-cage-7">7       for j in 0..h:</div>
+            <div class="pseudo-line" id="p-cage-8">8         chunk.sketch[j] = min(sketch[j], hash(can, j))</div>
+            <div class="pseudo-line" id="p-cage-9">9     for band in 0..b:</div>
+            <div class="pseudo-line" id="p-cage-10">10      bkt = hash(chunk.sketch[band*r .. (band+1)*r])</div>
+            <div class="pseudo-line" id="p-cage-11">11      LSH_Buckets[band][bkt].append(chunk)</div>
+            <div class="pseudo-line" id="p-cage-12">12  for bkt in LSH_Buckets:</div>
+            <div class="pseudo-line" id="p-cage-13">13    if bkt.size > 1:</div>
+            <div class="pseudo-line" id="p-cage-14">14      template = bkt[0]</div>
+            <div class="pseudo-line" id="p-cage-15">15      for member in bkt[1..]:</div>
+            <div class="pseudo-line" id="p-cage-16">16        script = editDistance(template, member)</div>
+            <div class="pseudo-line" id="p-cage-17">17        emit Rule(member -> template + script)</div>
+            <div class="pseudo-line" id="p-cage-18">18  emit Literal(uncompressed_chunks)</div>
+          </div>
+          <div class="narration-box" id="narr-simulator">
+            Waiting to start...
+          </div>
         </div>
       </div>
     </div>
@@ -520,17 +545,7 @@
     <!-- ===== MATH / THEORY ===== -->
     <div class="view" id="view-math">
       <div class="math-stack">
-        <div class="math-card">
-          <h3>LSH Collision Probability</h3>
-          <p>Given two chunks with Jaccard similarity <strong>s</strong> over their canonical k-mer sets, using <strong>b</strong> bands each of <strong>r = h/b</strong> rows:</p>
-          <div class="math-block">P(collision) = 1 − (1 − s<sup>r</sup>)<sup>b</sup></div>
-          <p>Tuning b and r shapes the S-curve threshold. High similarity → collision → same bucket → grammar compression. Low similarity → no collision → stored literally.</p>
-        </div>
-        <div class="math-card">
-          <h3>Canonical MinHash</h3>
-          <div class="math-block">x<sub>canonical</sub> = min(x, RC(x)) &nbsp;[lexicographic]<br><br>h<sub>i</sub>(Chunk) = min<sub>x∈Chunk</sub> { hash<sub>i</sub>(x<sub>canonical</sub>) }</div>
-          <p>The canonical form is orientation-invariant: a chunk and its reverse complement produce the <strong>identical sketch vector</strong> S = [h₁, h₂, …, hₕ].</p>
-        </div>
+
         <div class="math-card" style="border-color: var(--cage); box-shadow: 0 4px 24px var(--cage-glow);">
           <h3 style="font-size: 15px; margin-bottom: 16px;">🧬 Comprehensive Algorithm Comparison Window</h3>
           
@@ -600,97 +615,131 @@
             </tbody>
           </table>
         </div>
-        <div class="math-card">
-          <h3>Grammar Rule Bit Cost</h3>
-          <div class="math-block">Size<sub>bits</sub> = Σ<sub>templates</sub>(2·L) + Σ<sub>referenced</sub>[ptr + Σ<sub>edits</sub>(log₂L + 4)] + Σ<sub>literals</sub>(2·L)</div>
-          <p>where ptr = log₂(#chunks), each edit costs ≈ log₂(L) bits for position + 2 bits opcode + 2 bits base value. Typical genomic output: <strong>0.6–1.4 bpb</strong>.</p>
-        </div>
+
       </div>
     </div>
 
     <!-- ===== DNACOMPRESS ===== -->
     <div class="view" id="view-dnacomp">
-      <div class="walk-progress" id="wp-dna">
-        <div class="wp-step active" id="wp-dna-1" onclick="gotoDnaStage(1)">
-          <div class="wp-num">STEP 01</div>
-          <div class="wp-title">PatternHunter</div>
-          <div class="wp-sub">Find global seeds</div>
-        </div>
-        <div class="wp-step" id="wp-dna-2" onclick="gotoDnaStage(2)">
-          <div class="wp-num">STEP 02</div>
-          <div class="wp-title">Seed Extension</div>
-          <div class="wp-sub">Grow approximate matches</div>
-        </div>
-        <div class="wp-step" id="wp-dna-3" onclick="gotoDnaStage(3)">
-          <div class="wp-num">STEP 03</div>
-          <div class="wp-title">Encoding</div>
-          <div class="wp-sub">Repeats & non-repeats</div>
-        </div>
+      <div class="anim-controls">
+        <button class="btn-anim" id="btn-dnacomp-play" onclick="anim.play()">▶ Play</button>
+        <button class="btn-anim active" id="btn-dnacomp-pause" onclick="anim.pause()">⏸ Pause</button>
+        <button class="btn-anim" id="btn-dnacomp-step" onclick="anim.stepForward()">⏭ Step</button>
+        <div style="flex-grow:1"></div>
+        <select class="speed-select" onchange="anim.setSpeed(this.value)">
+          <option value="1000">Slow</option>
+          <option value="400" selected>Normal</option>
+          <option value="100">Fast</option>
+        </select>
+        <button class="btn-anim" onclick="anim.start('dnacomp', runDnaCompAnim)">🔄 Reset</button>
       </div>
-      <div class="stage-container">
-        <div id="vis-dnacomp-content"></div>
-        <div class="stage-nav">
-          <button class="btn-stage" id="btn-dna-prev" onclick="stepDnaSim(-1)" disabled>← Previous Step</button>
-          <span class="stage-pill" id="stage-dna-pill">Step 1 / 3</span>
-          <button class="btn-stage" id="btn-dna-next" onclick="stepDnaSim(1)">Next Step →</button>
+      
+      <div class="anim-layout">
+        <!-- Main Visualization Area -->
+        <div class="anim-main" id="vis-dnacomp-content">
+          <div class="placeholder">Click "Run All Algorithms" to start the visualization.</div>
+        </div>
+        
+        <!-- Sidebar for Pseudocode and Narration -->
+        <div class="anim-side">
+          <div class="pseudo-box" id="pseudo-dnacomp">
+            <div class="pseudo-line" id="p-dna-1">1 function DNACompress(DNA):</div>
+            <div class="pseudo-line" id="p-dna-2">2   seeds = PatternHunter.findGlobalMatches(DNA, len=8)</div>
+            <div class="pseudo-line" id="p-dna-3">3   for seed in seeds:</div>
+            <div class="pseudo-line" id="p-dna-4">4     match = extendSeedApprox(seed)</div>
+            <div class="pseudo-line" id="p-dna-5">5     if match.quality > threshold:</div>
+            <div class="pseudo-line" id="p-dna-6">6       emit Approx(match.pos, match.length, match.edits)</div>
+            <div class="pseudo-line" id="p-dna-7">7       markRegionEncoded(match)</div>
+            <div class="pseudo-line" id="p-dna-8">8   for i in unencoded_regions:</div>
+            <div class="pseudo-line" id="p-dna-9">9     emit Literal(DNA[i])</div>
+          </div>
+          <div class="narration-box" id="narr-dnacomp">
+            Waiting to start...
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ===== BIOCOMPRESS ===== -->
     <div class="view" id="view-biocomp">
-      <div class="walk-progress" id="wp-bio">
-        <div class="wp-step active" id="wp-bio-1" onclick="gotoBioStage(1)">
-          <div class="wp-num">STEP 01</div>
-          <div class="wp-title">Sliding Window</div>
-          <div class="wp-sub">Dictionary & Buffer</div>
-        </div>
-        <div class="wp-step" id="wp-bio-2" onclick="gotoBioStage(2)">
-          <div class="wp-num">STEP 02</div>
-          <div class="wp-title">Exact Match</div>
-          <div class="wp-sub">Greedy search</div>
-        </div>
-        <div class="wp-step" id="wp-bio-3" onclick="gotoBioStage(3)">
-          <div class="wp-num">STEP 03</div>
-          <div class="wp-title">Encoding</div>
-          <div class="wp-sub">Copy & Literals</div>
-        </div>
+      <div class="anim-controls">
+        <button class="btn-anim" id="btn-biocomp-play" onclick="anim.play()">▶ Play</button>
+        <button class="btn-anim active" id="btn-biocomp-pause" onclick="anim.pause()">⏸ Pause</button>
+        <button class="btn-anim" id="btn-biocomp-step" onclick="anim.stepForward()">⏭ Step</button>
+        <div style="flex-grow:1"></div>
+        <select class="speed-select" onchange="anim.setSpeed(this.value)">
+          <option value="1000">Slow</option>
+          <option value="400" selected>Normal</option>
+          <option value="100">Fast</option>
+        </select>
+        <button class="btn-anim" onclick="anim.start('biocomp', runBioCompAnim)">🔄 Reset</button>
       </div>
-      <div class="stage-container">
-        <div id="vis-biocomp-content"></div>
-        <div class="stage-nav">
-          <button class="btn-stage" id="btn-bio-prev" onclick="stepBioSim(-1)" disabled>← Previous Step</button>
-          <span class="stage-pill" id="stage-bio-pill">Step 1 / 3</span>
-          <button class="btn-stage" id="btn-bio-next" onclick="stepBioSim(1)">Next Step →</button>
+      
+      <div class="anim-layout">
+        <!-- Main Visualization Area -->
+        <div class="anim-main" id="vis-biocomp-content">
+          <div class="placeholder">Click "Run All Algorithms" to start the visualization.</div>
+        </div>
+        
+        <!-- Sidebar for Pseudocode and Narration -->
+        <div class="anim-side">
+          <div class="pseudo-box" id="pseudo-biocomp">
+            <div class="pseudo-line" id="p-bio-1">1 function BioCompress(DNA):</div>
+            <div class="pseudo-line" id="p-bio-2">2   i = 0</div>
+            <div class="pseudo-line" id="p-bio-3">3   while i < DNA.length:</div>
+            <div class="pseudo-line" id="p-bio-4">4     match = findLongestExactMatch(DNA[0..i], DNA[i..end])</div>
+            <div class="pseudo-line" id="p-bio-5">5     if match.length >= 4:</div>
+            <div class="pseudo-line" id="p-bio-6">6       emit Copy(match.pos, match.length)</div>
+            <div class="pseudo-line" id="p-bio-7">7       i += match.length</div>
+            <div class="pseudo-line" id="p-bio-8">8     else:</div>
+            <div class="pseudo-line" id="p-bio-9">9       emit Literal(DNA[i])</div>
+            <div class="pseudo-line" id="p-bio-10">10      i += 1</div>
+          </div>
+          <div class="narration-box" id="narr-biocomp">
+            Waiting to start...
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ===== GENCOMPRESS ===== -->
     <div class="view" id="view-gencomp">
-      <div class="walk-progress" id="wp-gen">
-        <div class="wp-step active" id="wp-gen-1" onclick="gotoGenStage(1)">
-          <div class="wp-num">STEP 01</div>
-          <div class="wp-title">DP Matrix Setup</div>
-          <div class="wp-sub">Allowing mutations</div>
-        </div>
-        <div class="wp-step" id="wp-gen-2" onclick="gotoGenStage(2)">
-          <div class="wp-num">STEP 02</div>
-          <div class="wp-title">Approximate Match</div>
-          <div class="wp-sub">Edit distance scan</div>
-        </div>
-        <div class="wp-step" id="wp-gen-3" onclick="gotoGenStage(3)">
-          <div class="wp-num">STEP 03</div>
-          <div class="wp-title">Edit Scripting</div>
-          <div class="wp-sub">Replace(pos, len, edits)</div>
-        </div>
+      <div class="anim-controls">
+        <button class="btn-anim" id="btn-gencomp-play" onclick="anim.play()">▶ Play</button>
+        <button class="btn-anim active" id="btn-gencomp-pause" onclick="anim.pause()">⏸ Pause</button>
+        <button class="btn-anim" id="btn-gencomp-step" onclick="anim.stepForward()">⏭ Step</button>
+        <div style="flex-grow:1"></div>
+        <select class="speed-select" onchange="anim.setSpeed(this.value)">
+          <option value="1000">Slow</option>
+          <option value="400" selected>Normal</option>
+          <option value="100">Fast</option>
+        </select>
+        <button class="btn-anim" onclick="anim.start('gencomp', runGenCompAnim)">🔄 Reset</button>
       </div>
-      <div class="stage-container">
-        <div id="vis-gencomp-content"></div>
-        <div class="stage-nav">
-          <button class="btn-stage" id="btn-gen-prev" onclick="stepGenSim(-1)" disabled>← Previous Step</button>
-          <span class="stage-pill" id="stage-gen-pill">Step 1 / 3</span>
-          <button class="btn-stage" id="btn-gen-next" onclick="stepGenSim(1)">Next Step →</button>
+      
+      <div class="anim-layout">
+        <!-- Main Visualization Area -->
+        <div class="anim-main" id="vis-gencomp-content">
+          <div class="placeholder">Click "Run All Algorithms" to start the visualization.</div>
+        </div>
+        
+        <!-- Sidebar for Pseudocode and Narration -->
+        <div class="anim-side">
+          <div class="pseudo-box" id="pseudo-gencomp">
+            <div class="pseudo-line" id="p-gen-1">1 function GenCompress(DNA):</div>
+            <div class="pseudo-line" id="p-gen-2">2   i = 0</div>
+            <div class="pseudo-line" id="p-gen-3">3   while i < DNA.length:</div>
+            <div class="pseudo-line" id="p-gen-4">4     match = findApproxMatch(DNA[0..i], DNA[i..end])</div>
+            <div class="pseudo-line" id="p-gen-5">5     if match.length >= 5 and match.edits <= 1:</div>
+            <div class="pseudo-line" id="p-gen-6">6       emit Approx(match.pos, match.length, match.edits)</div>
+            <div class="pseudo-line" id="p-gen-7">7       i += match.length</div>
+            <div class="pseudo-line" id="p-gen-8">8     else:</div>
+            <div class="pseudo-line" id="p-gen-9">9       emit Literal(DNA[i])</div>
+            <div class="pseudo-line" id="p-gen-10">10      i += 1</div>
+          </div>
+          <div class="narration-box" id="narr-gencomp">
+            Waiting to start...
+          </div>
         </div>
       </div>
     </div>
@@ -1035,39 +1084,110 @@ function setTab(id, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('view-' + id).classList.add('active');
-  if (id === 'simulator') renderSim();
-  if (id === 'dnacomp') renderDNAComp();
-  if (id === 'biocomp') renderBioComp();
-  if (id === 'gencomp') renderGenComp();
+  if (id === 'simulator') anim.start('simulator', runCageAnim);
+  if (id === 'dnacomp') anim.start('dnacomp', runDnaCompAnim);
+  if (id === 'biocomp') anim.start('biocomp', runBioCompAnim);
+  if (id === 'gencomp') anim.start('gencomp', runGenCompAnim);
 }
 
-let bioStage = 1, genStage = 1, dnaStage = 1;
-
-function gotoBioStage(n) { bioStage = n; renderBioComp(); }
-function stepBioSim(d) { bioStage = Math.max(1, Math.min(3, bioStage + d)); renderBioComp(); }
-
-function gotoGenStage(n) { genStage = n; renderGenComp(); }
-function stepGenSim(d) { genStage = Math.max(1, Math.min(3, genStage + d)); renderGenComp(); }
-
-function gotoDnaStage(n) { dnaStage = n; renderDNAComp(); }
-function stepDnaSim(d) { dnaStage = Math.max(1, Math.min(3, dnaStage + d)); renderDNAComp(); }
-
-function renderDNAComp() {
-  for (let i = 1; i <= 3; i++) {
-    const el = document.getElementById('wp-dna-' + i);
-    if(el) { el.classList.toggle('active', i === dnaStage); el.classList.toggle('done', i < dnaStage); }
+class AnimationController {
+  constructor() {
+    this.timer = null;
+    this.speed = 500;
+    this.isPlaying = false;
+    this.generator = null;
+    this.currentAlgo = null;
+    this.state = null;
   }
-  document.getElementById('btn-dna-prev').disabled = dnaStage === 1;
-  document.getElementById('btn-dna-next').disabled = dnaStage === 3;
-  document.getElementById('stage-dna-pill').textContent = 'Step ' + dnaStage + ' / 3';
-
-  const container = document.getElementById('vis-dnacomp-content');
-  if (!activeDna) { container.innerHTML = '<div class="placeholder">Load a sequence first.</div>'; return; }
   
-  const dna = activeDna.substring(0, Math.min(activeDna.length, 160)); // Keep it simple for viz
-  let html = '';
+  start(algoName, genFunc) {
+    this.isPlaying = false;
+    clearTimeout(this.timer);
+    this.currentAlgo = algoName;
+    this.state = null;
+    this.generator = genFunc();
+    // Take the first step immediately (without calling pause which resets things)
+    if (this.generator) {
+      const res = this.generator.next();
+      if (res.done) this.generator = null;
+      else this.state = res.value;
+    }
+    this.updateUI();
+  }
+  
+  play() {
+    if(!this.generator) return;
+    this.isPlaying = true;
+    this.updateUI();
+    this.stepLoop();
+  }
+  
+  pause() {
+    this.isPlaying = false;
+    clearTimeout(this.timer);
+    this.updateUI();
+  }
+  
+  stepForward() {
+    if (!this.generator) return;
+    this.isPlaying = false;
+    clearTimeout(this.timer);
+    const res = this.generator.next();
+    if(res.done) this.generator = null;
+    else this.state = res.value;
+    this.updateUI();
+  }
+  
+  stepLoop() {
+    if(!this.isPlaying || !this.generator) return;
+    const res = this.generator.next();
+    if(res.done) {
+      this.pause();
+      this.generator = null;
+    } else {
+      this.state = res.value;
+      this.timer = setTimeout(() => this.stepLoop(), this.speed);
+    }
+    this.updateUI();
+  }
+  
+  setSpeed(val) {
+    this.speed = parseInt(val);
+  }
+  
+  updateUI() {
+    if (!this.currentAlgo) return;
+    const btnPlay = document.getElementById(`btn-${this.currentAlgo}-play`);
+    const btnPause = document.getElementById(`btn-${this.currentAlgo}-pause`);
+    const btnStep = document.getElementById(`btn-${this.currentAlgo}-step`);
+    
+    if (btnPlay) {
+      if (this.isPlaying) {
+        btnPlay.classList.add('active');
+        btnPause.classList.remove('active');
+      } else {
+        btnPlay.classList.remove('active');
+        btnPause.classList.add('active');
+      }
+    }
+    if (btnStep) btnStep.disabled = !this.generator;
+    if (btnPlay) btnPlay.disabled = !this.generator;
+    
+    if (this.currentAlgo === 'biocomp') updateBioCompUI(this.state);
+    if (this.currentAlgo === 'gencomp') updateGenCompUI(this.state);
+    if (this.currentAlgo === 'dnacomp') updateDnaCompUI(this.state);
+    if (this.currentAlgo === 'simulator') updateCageUI(this.state);
+  }
+}
+const anim = new AnimationController();
 
-  // Pre-calculate seeds for consistency across stages
+function* runDnaCompAnim() {
+  if (!activeDna) return;
+  const dna = activeDna.substring(0, Math.min(activeDna.length, 160));
+  
+  yield { line: 1, html: '', narr: 'Starting DNACompress algorithm.' };
+  
+  // PatternHunter (find seeds)
   const seeds = {};
   for(let i=0; i<=dna.length-8; i+=4) {
     const s = dna.substring(i, i+8);
@@ -1075,222 +1195,216 @@ function renderDNAComp() {
     seeds[s].push(i);
   }
   let hits = Object.entries(seeds).filter(x => x[1].length > 1);
-
-  if (dnaStage === 1) {
-    html = `
-      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid #cbd5e1;">
-        <div class="sb-label" style="color:#cbd5e1">Stage 01 — PatternHunter</div>
-        <div class="sb-title">Finding global seeds with Suffix Trees</div>
-        <div class="sb-analogy"><strong>Analogy:</strong> Instead of sliding a window blindly from left to right, DNACompress builds a massive index (a suffix tree) of the entire sequence all at once, allowing it to instantly find all locations of any 8-letter "seed" word globally.</div>
-      </div>
-      <div class="stage-body">
-        <div class="vis-panel">
-          <div class="vis-title">🔍 Exact Seeds (Length 8) found in sequence</div>
-          <div style="font-family:var(--mono); font-size:12px; margin-bottom:12px;">`;
+  
+  yield { line: 2, hits, html: '', narr: `PatternHunter found ${hits.length} global seeds of length 8.` };
+  
+  let outHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+  let encoded = new Set();
+  
+  for (const [seed, arr] of hits) {
+    yield { line: 3, seed, arr, hits, html: outHtml + '</div>', narr: `Processing seed "${seed}" found at positions: ${arr.join(', ')}.` };
     
-    if (hits.length > 0) {
-      hits.slice(0, 5).forEach(([k, arr]) => {
-        html += `<div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:6px; border-left:3px solid #cbd5e1;">
-          <strong style="color:#cbd5e1;">Seed: ${k}</strong> globally found at positions: ${arr.join(', ')}
-        </div>`;
-      });
-      if(hits.length > 5) html += `<div style="font-size:11px; color:var(--dim)">...and ${hits.length - 5} more seed groups.</div>`;
-    } else {
-      html += `<div class="placeholder">No global repeats of length 8 found in this sequence segment.</div>`;
+    // Simulate extension for the first pair
+    const p1 = arr[0], p2 = arr[1];
+    yield { line: 4, seed, p1, p2, hits, html: outHtml + '</div>', narr: `Extending approximate match between pos ${p1} and pos ${p2}.` };
+    
+    // Fake extension quality
+    const quality = 95;
+    yield { line: 5, seed, p1, p2, hits, quality, html: outHtml + '</div>', narr: `Extension quality is ${quality}%. Is it > threshold?` };
+    
+    if (quality > 80) {
+      yield { line: 6, seed, p1, p2, hits, quality, html: outHtml + '</div>', narr: `Yes. Emitting Approx(${p2-p1}, 8, 0e) for the region at ${p2}.` };
+      outHtml += `<div style="background:rgba(255,255,255,0.1); border:1px solid #cbd5e1; color:#cbd5e1; padding:4px 6px; border-radius:4px;">Approx(${p2-p1}, 8, 0e)</div>`;
+      
+      yield { line: 7, seed, p1, p2, hits, quality, html: outHtml + '</div>', narr: `Marking region [${p2}..${p2+8}] as encoded.` };
+      for(let i=p2; i<p2+8; i++) encoded.add(i);
     }
-    html += `</div></div></div>`;
-  } 
-  else if (dnaStage === 2) {
-    html = `
-      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid #cbd5e1;">
-        <div class="sb-label" style="color:#cbd5e1">Stage 02 — Seed Extension</div>
-        <div class="sb-title">Growing seeds into approximate matches</div>
-        <div class="sb-analogy"><strong>Rule:</strong> Once a seed is found at two locations, DNACompress extends the match left and right, allowing a few mismatches, until the similarity drops below a certain threshold.</div>
-      </div>
-      <div class="stage-body">
-        <div class="vis-panel">
-          <div class="vis-title">🌱 Extending the best seed</div>`;
-          
-    if (hits.length > 0) {
-      const best = hits[0];
-      const p1 = best[1][0], p2 = best[1][1];
-      html += `
+  }
+  
+  yield { line: 8, hits, encoded, html: outHtml + '</div>', narr: `All seeds processed. Now encoding remaining unencoded regions.` };
+  
+  let finalHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+  for(let i=0; i<dna.length; i++) {
+    if (encoded.has(i)) {
+      finalHtml += `<div style="background:rgba(255,255,255,0.1); border:1px solid #cbd5e1; color:#cbd5e1; padding:4px 6px; border-radius:4px; font-size:10px;">R</div>`;
+    } else {
+      finalHtml += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim)">${dna[i]}</div>`;
+    }
+  }
+  
+  yield { line: 9, hits, encoded, html: finalHtml + '</div>', narr: `Emitting literals for all unencoded bases. Algorithm complete.` };
+}
+
+function updateDnaCompUI(state) {
+  if (!state) return;
+  const { line, hits, seed, p1, p2, html, narr } = state;
+  const dna = activeDna.substring(0, Math.min(activeDna.length, 160));
+  
+  // Highlight pseudocode
+  for(let j=1; j<=9; j++) {
+    const el = document.getElementById('p-dna-' + j);
+    if(el) {
+      if(j === line) el.classList.add('active');
+      else el.classList.remove('active');
+    }
+  }
+  
+  // Update narration
+  const nBox = document.getElementById('narr-dnacomp');
+  if(nBox) nBox.innerHTML = `<strong>Step ${line}:</strong> ${narr}`;
+  
+  // Render Main Visual
+  const container = document.getElementById('vis-dnacomp-content');
+  if(!container) return;
+  
+  let visHtml = '';
+  
+  if (line <= 3 && hits) {
+    let hitsHtml = '';
+    hits.slice(0, 5).forEach(([k, arr]) => {
+      const isAct = (k === seed);
+      hitsHtml += `<div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:6px; border-left:3px solid ${isAct ? '#fff' : '#cbd5e1'};">
+        <strong style="color:${isAct ? '#fff' : '#cbd5e1'};">Seed: ${k}</strong> globally found at positions: ${arr.join(', ')}
+      </div>`;
+    });
+    visHtml = `
+      <div class="vis-panel" style="margin-bottom:16px;">
+        <div class="vis-title">🔍 PatternHunter Exact Seeds (Length 8)</div>
+        <div style="font-family:var(--mono); font-size:12px; margin-bottom:12px;">${hitsHtml || '<div class="placeholder">No global repeats found.</div>'}</div>
+      </div>`;
+  }
+  else if (line >= 4 && line <= 7) {
+    visHtml = `
+      <div class="vis-panel" style="margin-bottom:16px;">
+        <div class="vis-title">🌱 Extending approximate match</div>
         <div style="font-family:var(--mono); font-size:13px; line-height: 1.6; margin-bottom:12px;">
-          <span style="color:var(--muted)">Original Seed:</span> <strong style="color:#cbd5e1">${best[0]}</strong><br>
+          <span style="color:var(--muted)">Original Seed:</span> <strong style="color:#cbd5e1">${seed}</strong><br>
           <span style="color:var(--muted)">Pos 1:</span> ...${dna.substring(Math.max(0, p1-4), p1)}<strong style="background:rgba(255,255,255,0.15); color:#fff">${dna.substring(p1, p1+8)}</strong>${dna.substring(p1+8, Math.min(dna.length, p1+12))}...<br>
           <span style="color:var(--muted)">Pos 2:</span> ...${dna.substring(Math.max(0, p2-4), p2)}<strong style="background:rgba(255,255,255,0.15); color:#fff">${dna.substring(p2, p2+8)}</strong>${dna.substring(p2+8, Math.min(dna.length, p2+12))}...<br>
         </div>
-        <div class="rule-box" style="border-color:#cbd5e1;">
-          These flanking regions are compared and added to the match if similar.
-        </div>`;
-    } else {
-      html += `<div class="placeholder">No seeds to extend.</div>`;
-    }
-    html += `</div></div>`;
+      </div>`;
   }
-  else if (dnaStage === 3) {
-    html = `
-      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid #cbd5e1;">
-        <div class="sb-label" style="color:#cbd5e1">Stage 03 — Final Encoding</div>
-        <div class="sb-title">Partitioning into Repeats and Non-Repeats</div>
-        <div class="sb-analogy">The sequence is split into regions of extended repeats (encoded as pointers + edits) and the remaining gaps are encoded as non-repeats using a 2-bit or Huffman model.</div>
-      </div>
-      <div class="stage-body">
-        <div class="vis-panel">
-          <div class="vis-title">📦 Final DNACompress Partition</div>
-          <div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
-    
-    // Fake a partition based on the seeds
-    let i = 0;
-    while(i < dna.length) {
-      let matched = false;
-      for (const [k, arr] of hits) {
-        if (arr.includes(i) && arr[0] !== i) { // it's a copy of the first occurrence
-          html += `<div style="background:rgba(255,255,255,0.1); border:1px solid #cbd5e1; color:#cbd5e1; padding:4px 6px; border-radius:4px;">Repeat(${arr[0]}, 8)</div>`;
-          i += 8;
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim)">${dna[i]}</div>`;
-        i++;
-      }
-    }
-    html += `</div></div></div>`;
-  }
-  container.innerHTML = html;
+  
+  container.innerHTML = `
+    ${visHtml}
+    <div class="vis-panel">
+      <div class="vis-title">📦 Output Stream</div>
+      ${html}
+    </div>
+  `;
 }
 
-function renderBioComp() {
-  for (let i = 1; i <= 3; i++) {
-    const el = document.getElementById('wp-bio-' + i);
-    if(el) { el.classList.toggle('active', i === bioStage); el.classList.toggle('done', i < bioStage); }
-  }
-  document.getElementById('btn-bio-prev').disabled = bioStage === 1;
-  document.getElementById('btn-bio-next').disabled = bioStage === 3;
-  document.getElementById('stage-bio-pill').textContent = 'Step ' + bioStage + ' / 3';
-
-  const container = document.getElementById('vis-biocomp-content');
-  if (!activeDna) { container.innerHTML = '<div class="placeholder">Load a sequence first.</div>'; return; }
+function* runBioCompAnim() {
+  if (!activeDna) return;
+  const dna = activeDna.substring(0, Math.min(activeDna.length, 120));
   
-  const dna = activeDna.substring(0, Math.min(activeDna.length, 120)); // Keep it simple for viz
-  let html = '';
-
-  if (bioStage === 1) {
-    html = `
-      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--greedy);">
-        <div class="sb-label" style="color:var(--greedy)">Stage 01 — Dictionary & Buffer</div>
-        <div class="sb-title">Scanning with a sliding window</div>
-        <div class="sb-analogy"><strong>Analogy:</strong> BioCompress uses a Ziv-Lempel approach. As it reads the DNA from left to right, everything to the left is the "Dictionary" (past), and everything to the right is the "Lookahead Buffer" (future).</div>
-      </div>
-      <div class="stage-body">
-        <div class="vis-panel">
-          <div class="vis-title">🔍 Example State at index 40</div>
-          <div style="font-family:var(--mono); font-size:14px; letter-spacing:2px; word-wrap:break-word;">
-            <span style="color:var(--muted); text-decoration:underline; text-decoration-color:var(--greedy); text-decoration-thickness:2px;" title="Dictionary (Past)">${dna.substring(0,40)}</span><span style="background:var(--greedy); color:#000; padding:2px; font-weight:bold;" title="Cursor">|</span><span style="color:var(--text);" title="Lookahead (Future)">${dna.substring(40)}</span>
-          </div>
-          <div style="font-size:11px; color:var(--dim); margin-top:12px;">Underlined = Dictionary (Already seen) | Bright text = Lookahead buffer (To be compressed)</div>
-        </div>
-      </div>`;
-  } 
-  else if (bioStage === 2) {
-    // Find a good match to show
-    let i = 40; if (i >= dna.length) i = Math.floor(dna.length / 2);
+  yield { line: 1, i: 0, html: '', narr: 'Starting BioCompress algorithm.' };
+  
+  let i = 0;
+  yield { line: 2, i, html: '', narr: `Initialized cursor i = 0.` };
+  
+  let outHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+  
+  while(i < dna.length) {
+    yield { line: 3, i, html: outHtml + '</div>', narr: `Checking loop condition: i (${i}) < DNA length (${dna.length}). True.` };
+    
     let bestLen = 0, bestPos = -1;
+    // For visualization, we just highlight the search space
+    yield { line: 4, i, html: outHtml + '</div>', search: true, narr: `Searching Dictionary (0 to ${i}) for longest exact match of Lookahead buffer (${i} to end).` };
+    
     for(let j=0; j<i; j++) {
       let l = 0; while(i+l < dna.length && dna[j+l] === dna[i+l]) l++;
       if (l > bestLen) { bestLen = l; bestPos = j; }
     }
     
-    html = `
-      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--greedy);">
-        <div class="sb-label" style="color:var(--greedy)">Stage 02 — Greedy Exact Match</div>
-        <div class="sb-title">Finding the longest identical past string</div>
-        <div class="sb-analogy"><strong>Rule:</strong> It searches the Dictionary for the absolutely longest exact match of the prefix in the Lookahead buffer. No mutations allowed!</div>
-      </div>
-      <div class="stage-body">
-        <div class="vis-panel">
-          <div class="vis-title">🎯 Match found for prefix at index ${i}</div>
-          <div style="font-family:var(--mono); font-size:14px; letter-spacing:2px; word-wrap:break-word; margin-bottom:12px;">
-            <span style="color:var(--muted);">${dna.substring(0,bestPos)}</span><span style="background:var(--greedy-glow); color:var(--greedy); border-bottom:2px solid var(--greedy); font-weight:bold;">${dna.substring(bestPos,bestPos+bestLen)}</span><span style="color:var(--muted);">${dna.substring(bestPos+bestLen,i)}</span><span style="background:var(--greedy); color:#000; padding:2px; font-weight:bold;">|</span><span style="background:var(--greedy-glow); color:var(--greedy); border-bottom:2px solid var(--greedy); font-weight:bold;">${dna.substring(i,i+bestLen)}</span><span style="color:var(--text);">${dna.substring(i+bestLen)}</span>
-          </div>
-          <div class="rule-box" style="border-color:var(--greedy);">
-            Match found at position ${bestPos} with length ${bestLen}
-          </div>
-        </div>
-      </div>`;
-  }
-  else if (bioStage === 3) {
-    html = `
-      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--greedy);">
-        <div class="sb-label" style="color:var(--greedy)">Stage 03 — Encoding Stream</div>
-        <div class="sb-title">Translating the DNA into Copy & Literal operations</div>
-        <div class="sb-analogy">Instead of ATCG, the output becomes a sequence of <code>Copy(distance, length)</code> for repeats, and <code>Literal(base)</code> for non-repeats.</div>
-      </div>
-      <div class="stage-body">
-        <div class="vis-panel">
-          <div class="vis-title">📦 Final BioCompress Stream</div>
-          <div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+    yield { line: 5, i, html: outHtml + '</div>', matchPos: bestPos, matchLen: bestLen, narr: `Found longest match of length ${bestLen} at position ${bestPos}. Is length >= 4?` };
     
-    let i = 0;
-    while(i < dna.length) {
-      let bestLen = 0, bestPos = -1;
-      for(let j=0; j<i; j++) {
-        let l = 0; while(i+l < dna.length && dna[j+l] === dna[i+l]) l++;
-        if (l > bestLen) { bestLen = l; bestPos = j; }
-      }
-      if (bestLen >= 4) {
-        html += `<div style="background:var(--greedy-glow); border:1px solid var(--greedy); color:var(--greedy); padding:4px 6px; border-radius:4px;" title="Match length ${bestLen} at pos ${bestPos}">Copy(${i-bestPos}, ${bestLen})</div>`;
-        i += bestLen;
-      } else {
-        html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim)">${dna[i]}</div>`;
-        i++;
-      }
+    if (bestLen >= 4) {
+      yield { line: 6, i, html: outHtml + '</div>', matchPos: bestPos, matchLen: bestLen, narr: `Yes (length is ${bestLen} >= 4). Emitting Copy(${i-bestPos}, ${bestLen}).` };
+      outHtml += `<div style="background:var(--greedy-glow); border:1px solid var(--greedy); color:var(--greedy); padding:4px 6px; border-radius:4px;">Copy(${i-bestPos}, ${bestLen})</div>`;
+      
+      i += bestLen;
+      yield { line: 7, i, html: outHtml + '</div>', narr: `Advancing cursor by ${bestLen}. New i = ${i}.` };
+    } else {
+      yield { line: 8, i, html: outHtml + '</div>', narr: `No (length is ${bestLen} < 4). Fallback to literal encoding.` };
+      yield { line: 9, i, html: outHtml + '</div>', narr: `Emitting Literal(${dna[i]}).` };
+      outHtml += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim)">${dna[i]}</div>`;
+      
+      i++;
+      yield { line: 10, i, html: outHtml + '</div>', narr: `Advancing cursor by 1. New i = ${i}.` };
     }
-    html += `</div>
-        </div>
-      </div>`;
   }
-  container.innerHTML = html;
+  
+  yield { line: 3, i, html: outHtml + '</div>', narr: `Checking loop condition: i (${i}) < DNA length (${dna.length}). False. Algorithm complete.` };
 }
 
-function renderGenComp() {
-  for (let i = 1; i <= 3; i++) {
-    const el = document.getElementById('wp-gen-' + i);
-    if(el) { el.classList.toggle('active', i === genStage); el.classList.toggle('done', i < genStage); }
-  }
-  document.getElementById('btn-gen-prev').disabled = genStage === 1;
-  document.getElementById('btn-gen-next').disabled = genStage === 3;
-  document.getElementById('stage-gen-pill').textContent = 'Step ' + genStage + ' / 3';
-
-  const container = document.getElementById('vis-gencomp-content');
-  if (!activeDna) { container.innerHTML = '<div class="placeholder">Load a sequence first.</div>'; return; }
+function updateBioCompUI(state) {
+  if (!state) return;
+  const { line, i, html, narr, search, matchPos, matchLen } = state;
+  const dna = activeDna.substring(0, Math.min(activeDna.length, 120));
   
-  const dna = activeDna.substring(0, Math.min(activeDna.length, 120)); // Keep it simple for viz
-  let html = '';
-
-  if (genStage === 1) {
-    html = `
-      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--dp);">
-        <div class="sb-label" style="color:var(--dp)">Stage 01 — DP Matrix Setup</div>
-        <div class="sb-title">Allowing mutations via Edit Distance</div>
-        <div class="sb-analogy"><strong>Analogy:</strong> Unlike BioCompress which gives up if a single letter is wrong, GenCompress builds an Edit Distance Matrix (like spellcheck algorithms) to see if a string is a match with just a few typos (substitutions/insertions/deletions).</div>
+  // Highlight pseudocode
+  for(let j=1; j<=10; j++) {
+    const el = document.getElementById('p-bio-' + j);
+    if(el) {
+      if(j === line) el.classList.add('active');
+      else el.classList.remove('active');
+    }
+  }
+  
+  // Update narration
+  const nBox = document.getElementById('narr-biocomp');
+  if(nBox) nBox.innerHTML = `<strong>Step ${line}:</strong> ${narr}`;
+  
+  // Render Main Visual
+  const container = document.getElementById('vis-biocomp-content');
+  if(!container) return;
+  
+  // Create the DNA visual
+  let dnaVis = '';
+  if (search || matchLen !== undefined) {
+    // Show match finding
+    if (matchPos !== undefined && matchPos >= 0) {
+      dnaVis = `<span style="color:var(--muted);">${dna.substring(0,matchPos)}</span><span style="background:var(--greedy-glow); color:var(--greedy); border-bottom:2px solid var(--greedy); font-weight:bold;">${dna.substring(matchPos,matchPos+matchLen)}</span><span style="color:var(--muted);">${dna.substring(matchPos+matchLen,i)}</span><span style="background:var(--greedy); color:#000; padding:2px; font-weight:bold;">|</span><span style="background:var(--greedy-glow); color:var(--greedy); border-bottom:2px solid var(--greedy); font-weight:bold;">${dna.substring(i,i+matchLen)}</span><span style="color:var(--text);">${dna.substring(i+matchLen)}</span>`;
+    } else {
+      dnaVis = `<span style="color:var(--muted); text-decoration:underline; text-decoration-color:var(--greedy); text-decoration-thickness:2px;" title="Dictionary (Past)">${dna.substring(0,i)}</span><span style="background:var(--greedy); color:#000; padding:2px; font-weight:bold;" title="Cursor">|</span><span style="color:var(--text);" title="Lookahead (Future)">${dna.substring(i)}</span>`;
+    }
+  } else {
+    // Normal cursor view
+    dnaVis = `<span style="color:var(--muted);">${dna.substring(0,i)}</span><span style="background:var(--greedy); color:#000; padding:2px; font-weight:bold;">|</span><span style="color:var(--text);">${dna.substring(i)}</span>`;
+  }
+  
+  container.innerHTML = `
+    <div class="vis-panel" style="margin-bottom:16px;">
+      <div class="vis-title">🔍 Current State (i = ${i})</div>
+      <div style="font-family:var(--mono); font-size:14px; letter-spacing:2px; word-wrap:break-word;">
+        ${dnaVis}
       </div>
-      <div class="stage-body">
-        <div class="vis-panel">
-          <div class="vis-title">🔍 Example Matrix setup</div>
-          <div style="font-family:var(--mono); font-size:12px; line-height: 1.6; color:var(--text);">
-            Target: <code>ACGTACGT</code><br>
-            Query:  <code>AC<span style="color:#fca5a5">T</span>TACGT</code> (1 substitution)<br><br>
-            GenCompress calculates the optimal path through the O(N²) DP matrix to determine the minimum number of edit operations required. This is extremely slow but yields the highest compression ratio.
-          </div>
-        </div>
-      </div>`;
-  } 
-  else if (genStage === 2) {
-    let i = 40; if (i >= dna.length) i = Math.floor(dna.length / 2);
+    </div>
+    <div class="vis-panel">
+      <div class="vis-title">📦 Output Stream</div>
+      ${html}
+    </div>
+  `;
+}
+
+function* runGenCompAnim() {
+  if (!activeDna) return;
+  const dna = activeDna.substring(0, Math.min(activeDna.length, 120));
+  
+  yield { line: 1, i: 0, html: '', narr: 'Starting GenCompress algorithm.' };
+  
+  let i = 0;
+  yield { line: 2, i, html: '', narr: `Initialized cursor i = 0.` };
+  
+  let outHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+  
+  while(i < dna.length) {
+    yield { line: 3, i, html: outHtml + '</div>', narr: `Checking loop condition: i (${i}) < DNA length (${dna.length}). True.` };
+    
     let bestLen = 0, bestPos = -1, bestEdits = 0;
+    yield { line: 4, i, html: outHtml + '</div>', search: true, narr: `Building DP Matrix for Dictionary (0 to ${i}) vs Lookahead buffer (${i} to end) allowing 1 mutation.` };
+    
     for(let j=0; j<i; j++) {
       let l = 0, edits = 0;
       while(i+l < dna.length) {
@@ -1301,61 +1415,72 @@ function renderGenComp() {
       if (l > bestLen) { bestLen = l; bestPos = j; bestEdits = edits; }
     }
     
-    html = `
-      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--dp);">
-        <div class="sb-label" style="color:var(--dp)">Stage 02 — Approximate Match Search</div>
-        <div class="sb-title">Finding optimal matches with edit operations</div>
-        <div class="sb-analogy"><strong>Rule:</strong> It searches the Dictionary for a match, allowing a penalty (e.g. up to 1 mutation).</div>
-      </div>
-      <div class="stage-body">
-        <div class="vis-panel">
-          <div class="vis-title">🎯 Match found for prefix at index ${i}</div>
-          <div style="font-family:var(--mono); font-size:14px; letter-spacing:2px; word-wrap:break-word; margin-bottom:12px;">
-            <span style="color:var(--muted);">${dna.substring(0,bestPos)}</span><span style="background:var(--dp-glow); color:var(--dp); border-bottom:2px solid var(--dp); font-weight:bold;">${dna.substring(bestPos,bestPos+bestLen)}</span><span style="color:var(--muted);">${dna.substring(bestPos+bestLen,i)}</span><span style="background:var(--dp); color:#000; padding:2px; font-weight:bold;">|</span><span style="background:var(--dp-glow); color:var(--dp); border-bottom:2px solid var(--dp); font-weight:bold;">${dna.substring(i,i+bestLen)}</span><span style="color:var(--text);">${dna.substring(i+bestLen)}</span>
-          </div>
-          <div class="rule-box" style="border-color:var(--dp);">
-            Approx match found at position ${bestPos} (length ${bestLen}) with ${bestEdits} edit(s)
-          </div>
-        </div>
-      </div>`;
-  }
-  else if (genStage === 3) {
-    html = `
-      <div class="stage-banner" style="background:var(--bg3); border-left:4px solid var(--dp);">
-        <div class="sb-label" style="color:var(--dp)">Stage 03 — Edit Script Generation</div>
-        <div class="sb-title">Translating the DNA into Replace operations</div>
-        <div class="sb-analogy">The output becomes a sequence of <code>Approx(distance, length, edits)</code> and Literals.</div>
-      </div>
-      <div class="stage-body">
-        <div class="vis-panel">
-          <div class="vis-title">📦 Final GenCompress Stream (with up to 1 edit)</div>
-          <div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+    yield { line: 5, i, html: outHtml + '</div>', matchPos: bestPos, matchLen: bestLen, matchEdits: bestEdits, narr: `Optimal match length ${bestLen} at pos ${bestPos} with ${bestEdits} edits. Is length >= 5 and edits <= 1?` };
     
-    let i = 0;
-    while(i < dna.length) {
-      let bestLen = 0, bestPos = -1, bestEdits = 0;
-      for(let j=0; j<i; j++) {
-        let l = 0, edits = 0;
-        while(i+l < dna.length) {
-          if (dna[j+l] !== dna[i+l]) edits++;
-          if (edits > 1) break;
-          l++;
-        }
-        if (l > bestLen) { bestLen = l; bestPos = j; bestEdits = edits; }
-      }
-      if (bestLen >= 5) {
-        html += `<div style="background:var(--dp-glow); border:1px solid var(--dp); color:var(--dp); padding:4px 6px; border-radius:4px;" title="Approx Match len ${bestLen} at pos ${bestPos} with ${bestEdits} edits">Approx(${i-bestPos}, ${bestLen}, ${bestEdits}e)</div>`;
-        i += bestLen;
-      } else {
-        html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim)">${dna[i]}</div>`;
-        i++;
-      }
+    if (bestLen >= 5 && bestEdits <= 1) {
+      yield { line: 6, i, html: outHtml + '</div>', matchPos: bestPos, matchLen: bestLen, matchEdits: bestEdits, narr: `Yes. Emitting Approx(${i-bestPos}, ${bestLen}, ${bestEdits}e).` };
+      outHtml += `<div style="background:var(--dp-glow); border:1px solid var(--dp); color:var(--dp); padding:4px 6px; border-radius:4px;">Approx(${i-bestPos}, ${bestLen}, ${bestEdits}e)</div>`;
+      
+      i += bestLen;
+      yield { line: 7, i, html: outHtml + '</div>', narr: `Advancing cursor by ${bestLen}. New i = ${i}.` };
+    } else {
+      yield { line: 8, i, html: outHtml + '</div>', narr: `No. Fallback to literal encoding.` };
+      yield { line: 9, i, html: outHtml + '</div>', narr: `Emitting Literal(${dna[i]}).` };
+      outHtml += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim)">${dna[i]}</div>`;
+      
+      i++;
+      yield { line: 10, i, html: outHtml + '</div>', narr: `Advancing cursor by 1. New i = ${i}.` };
     }
-    html += `</div>
-        </div>
-      </div>`;
   }
-  container.innerHTML = html;
+  
+  yield { line: 3, i, html: outHtml + '</div>', narr: `Checking loop condition: i (${i}) < DNA length (${dna.length}). False. Algorithm complete.` };
+}
+
+function updateGenCompUI(state) {
+  if (!state) return;
+  const { line, i, html, narr, search, matchPos, matchLen, matchEdits } = state;
+  const dna = activeDna.substring(0, Math.min(activeDna.length, 120));
+  
+  // Highlight pseudocode
+  for(let j=1; j<=10; j++) {
+    const el = document.getElementById('p-gen-' + j);
+    if(el) {
+      if(j === line) el.classList.add('active');
+      else el.classList.remove('active');
+    }
+  }
+  
+  // Update narration
+  const nBox = document.getElementById('narr-gencomp');
+  if(nBox) nBox.innerHTML = `<strong>Step ${line}:</strong> ${narr}`;
+  
+  // Render Main Visual
+  const container = document.getElementById('vis-gencomp-content');
+  if(!container) return;
+  
+  let dnaVis = '';
+  if (search || matchLen !== undefined) {
+    if (matchPos !== undefined && matchPos >= 0) {
+      dnaVis = `<span style="color:var(--muted);">${dna.substring(0,matchPos)}</span><span style="background:var(--dp-glow); color:var(--dp); border-bottom:2px solid var(--dp); font-weight:bold;">${dna.substring(matchPos,matchPos+matchLen)}</span><span style="color:var(--muted);">${dna.substring(matchPos+matchLen,i)}</span><span style="background:var(--dp); color:#000; padding:2px; font-weight:bold;">|</span><span style="background:var(--dp-glow); color:var(--dp); border-bottom:2px solid var(--dp); font-weight:bold;">${dna.substring(i,i+matchLen)}</span><span style="color:var(--text);">${dna.substring(i+matchLen)}</span>`;
+    } else {
+      dnaVis = `<span style="color:var(--muted); text-decoration:underline; text-decoration-color:var(--dp); text-decoration-thickness:2px;" title="Dictionary (Past)">${dna.substring(0,i)}</span><span style="background:var(--dp); color:#000; padding:2px; font-weight:bold;" title="Cursor">|</span><span style="color:var(--text);" title="Lookahead (Future)">${dna.substring(i)}</span>`;
+    }
+  } else {
+    dnaVis = `<span style="color:var(--muted);">${dna.substring(0,i)}</span><span style="background:var(--dp); color:#000; padding:2px; font-weight:bold;">|</span><span style="color:var(--text);">${dna.substring(i)}</span>`;
+  }
+  
+  container.innerHTML = `
+    <div class="vis-panel" style="margin-bottom:16px;">
+      <div class="vis-title">🔍 Current State (i = ${i})</div>
+      <div style="font-family:var(--mono); font-size:14px; letter-spacing:2px; word-wrap:break-word;">
+        ${dnaVis}
+      </div>
+    </div>
+    <div class="vis-panel">
+      <div class="vis-title">📦 Output Stream</div>
+      ${html}
+    </div>
+  `;
 }
 
 function triggerDebounce() {
@@ -1405,10 +1530,10 @@ function runPipeline() {
   // Refresh active tab
   const activeView = document.querySelector('.view.active');
   if (activeView) {
-    if (activeView.id === 'view-simulator') renderSim();
-    if (activeView.id === 'view-dnacomp') renderDNAComp();
-    if (activeView.id === 'view-biocomp') renderBioComp();
-    if (activeView.id === 'view-gencomp') renderGenComp();
+    if (activeView.id === 'view-simulator') anim.start('simulator', runCageAnim);
+    if (activeView.id === 'view-dnacomp') anim.start('dnacomp', runDnaCompAnim);
+    if (activeView.id === 'view-biocomp') anim.start('biocomp', runBioCompAnim);
+    if (activeView.id === 'view-gencomp') anim.start('gencomp', runGenCompAnim);
   }
 }
 
@@ -1452,348 +1577,151 @@ function doBenchmark() {
 // STEP WALKTHROUGH - Beginner Friendly
 // ═══════════════════════════════════════
 
-function gotoStage(n) { simStage = n; renderSim(); }
-function stepSim(d) { simStage = Math.max(1, Math.min(5, simStage + d)); renderSim(); }
-
-function renderSim() {
-  // Update progress bar
-  for (let i = 1; i <= 5; i++) {
-    const el = document.getElementById('wp-' + i);
-    if(el) {
-      el.classList.toggle('active', i === simStage);
-      el.classList.toggle('done', i < simStage);
-    }
-  }
-  document.getElementById('btn-prev').disabled = simStage === 1;
-  document.getElementById('btn-next').disabled = simStage === 5;
-  document.getElementById('stage-pill').textContent = 'Step ' + simStage + ' / 5';
-
-  const container = document.getElementById('stage-content');
-  container.innerHTML = '';
-
-  if (!results) {
-    container.innerHTML = `<div style="padding:32px 24px;">
-      <div class="callout callout-info">
-        ⚠️ <strong>No data yet.</strong> Please type a DNA sequence in the sidebar (or click a preset), then click <strong>⚡ Run All Algorithms</strong> to see the step-by-step walkthrough with your actual data.
-      </div></div>`;
-    return;
-  }
-
+function* runCageAnim() {
+  if (!activeDna || !results) return;
   const dna = activeDna;
   const chunks = results.cage.chunks;
-
-  // ─── STAGE 1: CHUNKING ───────────────────────────────────
-  if (simStage === 1) {
-    const step = Math.max(1, Math.floor(pL / 2));
-    container.innerHTML = `
-      <div class="stage-banner">
-        <div class="sb-label">Stage 01 — Chunking DNA</div>
-        <div class="sb-title">Breaking the long sequence into overlapping blocks</div>
-        <div class="sb-analogy">
-          <strong>Real-world analogy:</strong> Imagine reading a long book by cutting it into overlapping pages. Each "page" (chunk) shares half its content with the next, so nothing at the page boundary is missed. Here, we cut the ${dna.length}-base DNA string into overlapping <strong>blocks of L = ${pL} bases</strong>, sliding forward by <strong>L/2 = ${step} bases</strong> each time.
-        </div>
-      </div>
-      <div class="stage-body">
-        <div class="mini-steps">
-          <div class="mini-step">
-            <div class="mini-step-num">1</div>
-            <div class="mini-step-content">
-              <div class="mini-step-title">The full DNA input (${dna.length} bases)</div>
-              <div class="mini-step-desc">Each base is colour-coded: <span style="color:#86efac">A</span> = green, <span style="color:#fca5a5">T</span> = red, <span style="color:#93c5fd">C</span> = blue, <span style="color:#fde68a">G</span> = yellow</div>
-              <div class="vis-panel" style="margin-top:8px">
-                <div class="vis-title">🧬 Full Sequence</div>
-                <div class="dna-display">${renderBases(dna.substring(0, Math.min(dna.length, 120)))}</div>
-                ${dna.length > 120 ? `<div style="font-size:10px;color:var(--dim);margin-top:4px">…and ${dna.length - 120} more bases</div>` : ''}
-              </div>
-            </div>
-          </div>
-          <div class="mini-step">
-            <div class="mini-step-num">2</div>
-            <div class="mini-step-content">
-              <div class="mini-step-title">Sliding window creates ${chunks.length} overlapping chunks</div>
-              <div class="mini-step-desc">Each chunk starts ${step} positions after the previous. The overlap (shown below) ensures mutations at block edges are captured twice.</div>
-            </div>
-          </div>
-          <div class="mini-step">
-            <div class="mini-step-num">3</div>
-            <div class="mini-step-content">
-              <div class="mini-step-title">All generated chunks — click any to highlight it in the sequence above</div>
-              <div class="vis-panel" style="margin-top:8px">
-                <div class="vis-title">📦 ${chunks.length} Chunks (Block Size L = ${pL})</div>
-                <div class="chunk-list">${chunks.map((ch, i) => `
-                  <div class="chunk-block" id="cbk-${i}" onclick="highlightChunk(${i})">
-                    <div class="cb-head">
-                      <span class="cb-id">Chunk C_${ch.idx}</span>
-                      <span class="cb-pos">bases ${ch.start}–${ch.end-1}</span>
-                    </div>
-                    <div class="cb-seq">${ch.seq}</div>
-                  </div>`).join('')}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="callout callout-cage">
-          ✅ <strong>Why overlapping?</strong> If blocks were non-overlapping, a mutation right at a block boundary would split between two blocks, making it undetectable. Overlapping blocks ensure every pattern is fully captured in at least one block.
-        </div>
-      </div>`;
+  const b = pb;
+  const r = Math.max(1, Math.floor(ph / pb));
+  
+  const introVis = `<div class="vis-title">🚀 Algorithm Initialized</div><div style="color:var(--muted); font-size:12px;">Sequence Length: ${dna.length} bp<br>Block Size (L): ${pL}</div>`;
+  yield { line: 1, html: '', customVis: introVis, narr: 'Starting RC-Aware CAGE algorithm.' };
+  
+  // Chunking
+  yield { line: 2, chunks, html: '', customVis: introVis, narr: `Chunking sequence into overlapping blocks (L=${pL}, step=${Math.floor(pL/2)}). Created ${chunks.length} chunks.` };
+  
+  let outHtml = `<div class="vis-title">🔍 Processing chunks</div><div class="chunk-list" style="margin-bottom:12px;">`;
+  
+  for (let c = 0; c < Math.min(chunks.length, 3); c++) {
+    const chunk = chunks[c];
+    yield { line: 3, chunks, c, html: outHtml + '</div>', narr: `Processing chunk C_${chunk.idx} (${chunk.seq}).` };
+    
+    // k-mers
+    yield { line: 4, chunks, c, html: outHtml + '</div>', narr: `Extracting k-mers of length ${pk}.` };
+    
+    // canonical
+    yield { line: 5, chunks, c, html: outHtml + '</div>', narr: `Computing canonical min(k-mer, RC(k-mer)).` };
+    yield { line: 6, chunks, c, html: outHtml + '</div>', narr: `Strand-agnostic representation derived.` };
+    
+    // hash
+    yield { line: 7, chunks, c, html: outHtml + '</div>', narr: `Applying ${ph} hash functions to find minimums.` };
+    yield { line: 8, chunks, c, sketch: chunk.sketch, html: outHtml + '</div>', narr: `MinHash sketch built for C_${chunk.idx}.` };
+    
+    // banding
+    yield { line: 9, chunks, c, sketch: chunk.sketch, html: outHtml + '</div>', narr: `Splitting sketch into ${b} bands of ${r} values.` };
+    
+    yield { line: 10, chunks, c, sketch: chunk.sketch, html: outHtml + '</div>', narr: `Hashing bands to find bucket keys.` };
+    yield { line: 11, chunks, c, sketch: chunk.sketch, html: outHtml + '</div>', narr: `Appending C_${chunk.idx} to LSH buckets.` };
+    
+    outHtml += `<div style="background:var(--cage-glow); border:1px solid var(--cage); padding:4px 6px; border-radius:4px; color:var(--cage);">C_${chunk.idx} sketched & bucketed</div>`;
   }
+  
+  if (chunks.length > 3) {
+    outHtml += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px; color:var(--dim);">... ${chunks.length - 3} more chunks processed ...</div>`;
+    yield { line: 3, chunks, c: chunks.length, html: outHtml + '</div>', narr: `Fast-forwarding: processed remaining chunks.` };
+  }
+  
+  outHtml += `</div>`;
+  
+  // Buckets & Rules
+  const hasBuckets = results.cage.buckets.length > 0;
+  const bktVis = `<div class="vis-title">🪣 Analyzing LSH Buckets</div><div style="color:var(--muted); font-size:12px;">Scanning ${results.cage.buckets.length} populated buckets for collisions...</div>`;
+  yield { line: 12, buckets: results.cage.buckets, html: outHtml, customVis: bktVis, narr: `Iterating over populated LSH buckets.` };
+  
+  if (hasBuckets) {
+    const bkt = results.cage.buckets[0];
+    yield { line: 13, buckets: results.cage.buckets, html: outHtml, narr: `Found bucket with ${bkt.members.length} members (size > 1).` };
+    
+    yield { line: 14, buckets: results.cage.buckets, bkt, html: outHtml, narr: `Setting template = C_${bkt.tmplIdx}.` };
+    
+    yield { line: 15, buckets: results.cage.buckets, bkt, html: outHtml, narr: `Iterating over other bucket members.` };
+    
+    yield { line: 16, buckets: results.cage.buckets, bkt, html: outHtml, narr: `Computing edit script (sub/ins/del) against template.` };
+    
+    yield { line: 17, buckets: results.cage.buckets, bkt, html: outHtml, narr: `Emitting grammar rules for approximate repeats.` };
+    
+    outHtml += `<div class="vis-title">📦 Grammar Rules Generated</div>`;
+    outHtml += `<div style="background:rgba(255,255,255,0.1); border:1px solid var(--cage); color:var(--cage); padding:8px; border-radius:6px; font-family:var(--mono); font-size:11px;">Rules emitted for bucket 0x${bkt.key.toString(16).substring(0,8)}...</div>`;
+  } else {
+    const noBktVis = `<div class="vis-title" style="color:var(--greedy)">⚠️ No Collisions</div><div style="color:var(--muted); font-size:12px;">No buckets with size > 1 were found. This means no chunks were similar enough to share a MinHash sketch.</div>`;
+    yield { line: 13, buckets: results.cage.buckets, html: outHtml, customVis: noBktVis, narr: `No buckets with size > 1 found (no collisions).` };
+  }
+  
+  const endVis = `<div class="vis-title" style="color:var(--cage)">✅ Compression Complete</div><div style="color:var(--muted); font-size:12px;">The sequence has been fully processed. ${hasBuckets ? 'Approximate repeats were encoded via grammar rules.' : 'Since no collisions occurred, the entire sequence is encoded as literals.'}</div>`;
+  yield { line: 18, html: outHtml, customVis: endVis, narr: `Emitting literals for all uncompressed chunks. CAGE compression complete.` };
+}
 
-  // ─── STAGE 2: MINHASH ────────────────────────────────────
-  else if (simStage === 2) {
-    const ch = chunks[0];
-    if (!ch) { container.innerHTML = '<div style="padding:24px"><div class="placeholder">No chunks available — increase DNA length or reduce L.</div></div>'; return; }
-    const kmers = [];
-    for (let i = 0; i + pk <= ch.seq.length && i < 10; i++) {
-      const kmer = ch.seq.substring(i, i + pk);
-      const rv = rcSeq(kmer);
-      const can = canonical(kmer);
-      kmers.push({ kmer, rv, can, isRC: kmer > rv });
+function updateCageUI(state) {
+  if (!state) return;
+  const { line, html, narr, chunks, c, sketch, buckets, bkt, customVis } = state;
+  
+  // Highlight pseudocode
+  for(let j=1; j<=18; j++) {
+    const el = document.getElementById('p-cage-' + j);
+    if(el) {
+      if(j === line) el.classList.add('active');
+      else el.classList.remove('active');
     }
-    const sketchRows = ch.sketch.slice(0, Math.min(ph, 8));
-
-    container.innerHTML = `
-      <div class="stage-banner">
-        <div class="sb-label">Stage 02 — Canonical MinHash Sketching</div>
-        <div class="sb-title">Turning each chunk into a tiny "fingerprint"</div>
-        <div class="sb-analogy">
-          <strong>Real-world analogy:</strong> Imagine summarising a book by its 5 rarest words. Two books with the same rare words are probably similar. Here we extract short sub-strings (k-mers), and for each we pick the "canonical" version (forward vs. reverse complement — whichever comes first alphabetically). Then we take the <em>minimum</em> hash value across all k-mers for each hash function. The result is a fixed-size <strong>"sketch" vector</strong> representing the entire block.
-        </div>
-      </div>
-      <div class="stage-body">
-        <div class="mini-steps">
-          <div class="mini-step">
-            <div class="mini-step-num">1</div>
-            <div class="mini-step-content">
-              <div class="mini-step-title">Choose a block to inspect — showing Chunk C_0</div>
-              <div class="mini-step-desc">Sequence: <span style="font-family:var(--mono);color:var(--cage)">${ch.seq}</span></div>
-            </div>
-          </div>
-          <div class="mini-step">
-            <div class="mini-step-num">2</div>
-            <div class="mini-step-content">
-              <div class="mini-step-title">Extract every ${pk}-letter sub-string (k-mer) with its Reverse Complement</div>
-              <div class="mini-step-desc">The <strong>canonical k-mer</strong> is the lexicographically smaller of {k-mer, RC(k-mer)}. This makes it strand-agnostic — both DNA strands map to the same canonical value.</div>
-              <div class="vis-panel" style="margin-top:8px">
-                <div class="vis-title">🔬 k-mer Table (k = ${pk}, first ${kmers.length} shown)</div>
-                <table class="hash-table">
-                  <thead><tr><th>#</th><th>k-mer (forward)</th><th>RC (reverse complement)</th><th>Canonical (chosen)</th></tr></thead>
-                  <tbody>${kmers.map((km, i) => `<tr>
-                    <td style="color:var(--dim)">${i}</td>
-                    <td><div style="display:flex;gap:2px">${renderBases(km.kmer)}</div></td>
-                    <td><div style="display:flex;gap:2px">${renderBases(km.rv)}</div></td>
-                    <td style="color:var(--cage);font-weight:700"><div style="display:flex;gap:2px;align-items:center">${renderBases(km.can)}<span class="canon-badge">${km.isRC ? 'RC wins' : 'FWD wins'}</span></div></td>
-                  </tr>`).join('')}</tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-          <div class="mini-step">
-            <div class="mini-step-num">3</div>
-            <div class="mini-step-content">
-              <div class="mini-step-title">Apply ${ph} different hash functions → keep the minimum for each</div>
-              <div class="mini-step-desc">Each hash function "ranks" all k-mers differently. We keep only the <strong>minimum hash value</strong> for each function. This is the MinHash sketch — a fixed-size vector of ${ph} numbers representing the entire chunk.</div>
-              <div class="vis-panel" style="margin-top:8px">
-                <div class="vis-title">🧮 MinHash Sketch Vector for C_0 (showing ${sketchRows.length} of ${ph} values)</div>
-                <div class="sketch-vec">
-                  ${sketchRows.map((v, i) => `<div class="sv-cell min-val" title="Hash function ${i}"><span style="font-size:8px;color:var(--dim)">h${i}=</span>${'0x'+v.toString(16).padStart(4,'0').substring(0,4)}</div>`).join('')}
-                  ${ph > 8 ? `<div style="font-size:10px;color:var(--dim);display:flex;align-items:center;padding:0 6px">…+${ph-8} more</div>` : ''}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="callout callout-cage">
-          ✅ <strong>Key insight:</strong> Two chunks with many common k-mers (even with 1–2 mutations) will share many of their minimum hash values, making their sketch vectors <em>nearly identical</em>. This is the basis for finding approximate matches.
-        </div>
-      </div>`;
   }
-
-  // ─── STAGE 3: LSH BANDING ────────────────────────────────
-  else if (simStage === 3) {
-    const ch0 = chunks[0];
+  
+  // Update narration
+  const nBox = document.getElementById('narr-simulator');
+  if(nBox) nBox.innerHTML = `<strong>Step ${line}:</strong> ${narr}`;
+  
+  // Render Main Visual
+  const container = document.getElementById('stage-content');
+  if(!container) return;
+  
+  let visHtml = '';
+  
+  if (sketch) {
     const r = Math.max(1, Math.floor(ph / pb));
-    const hasBuckets = results.cage.buckets.length > 0;
-    const topBucket = results.cage.buckets[0];
-
     let bandsHtml = '';
     for (let band = 0; band < pb; band++) {
-      const sub = ch0.sketch.slice(band * r, (band + 1) * r);
-      const key = ch0.bucketKeys[band];
-      // Find if any collision in this band
-      const bkt = results.cage.buckets.find(b => b.band === band && b.key === key);
-      const hasMatch = !!bkt;
+      const sub = sketch.slice(band * r, (band + 1) * r);
       bandsHtml += `
-        <div class="band-row-vis${hasMatch ? ' band-match' : ''}">
-          <div class="bv-header">
-            <span class="bv-label">Band ${band}  (rows ${band*r}–${Math.min((band+1)*r-1, ph-1)})${hasMatch ? ' 🎯 COLLISION!' : ''}</span>
-            <span class="bv-key">Bucket Key: 0x${key.toString(16).substring(0,8)}</span>
-          </div>
-          <div class="bv-cells">
-            ${sub.map(v => `<div class="bvc">0x${v.toString(16).substring(0,4)}</div>`).join('')}
+        <div class="band-row-vis" style="margin-bottom:4px; padding:6px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:4px;">
+          <div style="font-size:10px; color:var(--dim); margin-bottom:4px;">Band ${band} (rows ${band*r}–${Math.min((band+1)*r-1, ph-1)})</div>
+          <div style="display:flex; gap:4px; font-family:var(--mono); font-size:11px; color:var(--cage);">
+            ${sub.map(v => `0x${v.toString(16).substring(0,4)}`).join(' ')}
           </div>
         </div>`;
     }
-
-    container.innerHTML = `
-      <div class="stage-banner">
-        <div class="sb-label">Stage 03 — Locality Sensitive Hashing (LSH)</div>
-        <div class="sb-title">Finding similar chunks in O(1) without comparing every pair</div>
-        <div class="sb-analogy">
-          <strong>Real-world analogy:</strong> Instead of checking every student's exam paper against every other to find similar ones, you split each paper into 3 sections and check: do any two papers have the exact same section? If yes → they're probably similar overall. This replaces O(N²) pairwise comparison with O(1) bucket lookup.
-          <br><br>
-          We split the ${ph}-value sketch into <strong>b = ${pb} bands of r = ${r} values each</strong>. Each band's values are hashed to a bucket key. Two chunks that share even one band key go into the same bucket.
-        </div>
-      </div>
-      <div class="stage-body">
-        <div class="mini-steps">
-          <div class="mini-step">
-            <div class="mini-step-num">1</div>
-            <div class="mini-step-content">
-              <div class="mini-step-title">Divide Chunk C_0's sketch into ${pb} bands</div>
-              <div class="mini-step-desc">Each band is hashed to a short bucket key. A 🎯 means another chunk landed in the same bucket!</div>
-              <div class="vis-panel" style="margin-top:8px">
-                <div class="vis-title">🪣 Band Partitioning for C_0</div>
-                <div class="band-visual">${bandsHtml}</div>
-              </div>
-            </div>
-          </div>
-          <div class="mini-step">
-            <div class="mini-step-num">2</div>
-            <div class="mini-step-content">
-              <div class="mini-step-title">Buckets with collisions = approximate matches found!</div>
-              <div class="mini-step-desc">${hasBuckets ? `Found <strong style="color:var(--cage)">${results.cage.buckets.length} bucket(s)</strong> with 2+ colliding chunks. These will be compressed together using grammar rules.` : `No collisions found with current parameters. Try a more repetitive sequence or reduce L / b.`}</div>
-              ${hasBuckets ? `
-              <div class="vis-panel" style="margin-top:8px">
-                <div class="vis-title">🎯 Collision Buckets Found</div>
-                <div class="bucket-vis">
-                  ${results.cage.buckets.slice(0,4).map(bkt => `
-                  <div class="bkt-group">
-                    <div class="bkt-hdr">
-                      <span class="bkt-name">Band ${bkt.band} | Bucket 0x${bkt.key.toString(16).substring(0,8)}</span>
-                      <span class="bkt-cnt">${bkt.members.length} chunks</span>
-                    </div>
-                    <div class="bkt-body">
-                      <div style="font-size:11.5px;color:var(--muted)">Colliding chunks: 
-                        ${bkt.members.map(m => `<strong style="color:var(--text)">C_${m}</strong>`).join(', ')}
-                      </div>
-                      <div style="font-size:10.5px;color:var(--dim);margin-top:4px">Template = C_${bkt.tmplIdx} | Sequence: <span style="font-family:var(--mono);color:var(--muted)">${bkt.tmplSeq.substring(0,30)}${bkt.tmplSeq.length>30?'…':''}</span></div>
-                    </div>
-                  </div>`).join('')}
-                  ${results.cage.buckets.length > 4 ? `<div style="font-size:11px;color:var(--dim)">…and ${results.cage.buckets.length - 4} more buckets</div>` : ''}
-                </div>
-              </div>` : ''}
-            </div>
-          </div>
-        </div>
-        <div class="callout callout-info">
-          💡 <strong>Why is this O(N log N)?</strong> Hashing into a bucket takes O(1). We do this for each band (b = ${pb} times) for each chunk (${chunks.length} chunks). Total = O(N/L × b) = O(N). Sorting/indexing the buckets adds O(N log N). Compare this to O(N²) pairwise comparison — for 1000 chunks that's 1000 vs 1,000,000 operations!
-        </div>
-      </div>`;
-  }
-
-  // ─── STAGE 4: GRAMMAR ────────────────────────────────────
-  else if (simStage === 4) {
-    const hasBuckets = results.cage.buckets.length > 0;
-    let rulesHtml = '';
-    let refCount = 0, litCount = 0;
-    chunks.forEach((ch, i) => {
-      if (results.cage.compressed[i]) refCount++;
-      else litCount++;
-    });
-
-    if (hasBuckets) {
-      results.cage.buckets.slice(0, 3).forEach((bkt, bi) => {
-        const tmpl = chunks[bkt.tmplIdx];
-        let membersHtml = '';
-        bkt.members.slice(0, 4).forEach(mIdx => {
-          const cmp = results.cage.compressed[mIdx];
-          if (mIdx === bkt.tmplIdx || !cmp) return;
-          const edits = cmp.ops.filter(o => o.t !== 'm');
-          const script = edits.map(op => {
-            if (op.t === 's') return `sub(${op.p},'${op.v}')`;
-            if (op.t === 'i') return `ins(${op.p},'${op.v}')`;
-            return `del(${op.p})`;
-          }).join(', ');
-          let diffBases = '';
-          cmp.ops.forEach(op => {
-            if      (op.t === 'm') diffBases += `<span class="db m">${op.v}</span>`;
-            else if (op.t === 's') diffBases += `<span class="db s" title="Change ${op.old}→${op.v}">${op.v}</span>`;
-            else if (op.t === 'i') diffBases += `<span class="db i" title="Inserted ${op.v}">${op.v}</span>`;
-            else if (op.t === 'd') diffBases += `<span class="db d" title="Deleted ${op.old}">-</span>`;
-          });
-          membersHtml += `
-            <div style="margin-bottom:14px;border-left:3px solid var(--border);padding-left:12px">
-              <div class="diff-view" style="margin-bottom:8px">
-                <div class="diff-row">
-                  <span class="diff-label tmpl">Template C_${bkt.tmplIdx}</span>
-                  <div class="diff-bases">${tmpl.seq.split('').map(b=>`<span class="db m">${b}</span>`).join('')}</div>
-                </div>
-                <div class="diff-row">
-                  <span class="diff-label">Chunk C_${mIdx}</span>
-                  <div class="diff-bases">${diffBases}</div>
-                </div>
-              </div>
-              <div class="rule-box">C_${mIdx} → C_${bkt.tmplIdx} + [${script || '<em style="color:var(--dim)">no edits — identical!</em>'}]</div>
-              <div style="font-size:10.5px;color:var(--dim);margin-top:4px">
-                Saved ${Math.max(0, tmpl.seq.length * 2 - (edits.length * 8))} bits vs. storing literally
-              </div>
-            </div>`;
-        });
-
-        rulesHtml += `
-          <div class="mini-step">
-            <div class="mini-step-num">${bi + 1}</div>
-            <div class="mini-step-content">
-              <div class="mini-step-title">Bucket ${bi+1}: C_${bkt.tmplIdx} is the Template</div>
-              <div class="mini-step-desc">Grey = matching bases (not stored), <span style="color:#fca5a5">Red = substitution</span>, <span style="color:#86efac">Green = insertion</span>, <span style="color:#93c5fd">Blue = deletion</span></div>
-              ${membersHtml || '<div style="font-size:11px;color:var(--dim);margin-top:8px">All members are the template itself in this bucket.</div>'}
-            </div>
-          </div>`;
-      });
-    }
-
-    container.innerHTML = `
-      <div class="stage-banner">
-        <div class="sb-label">Stage 04 — Parameterized Grammar Extraction</div>
-        <div class="sb-title">Compressing similar chunks using a "Template + Mutations" rule</div>
-        <div class="sb-analogy">
-          <strong>Real-world analogy:</strong> Instead of printing two nearly identical essays, you print one (the template) and for the other you just write: "same as Essay A, but change word 5 from 'cat' to 'bat'". That's exactly what a grammar rule does — it stores the template once, then lists only the differences (substitutions, insertions, deletions) for each similar chunk.
-          <br><br>
-          Result: <strong style="color:var(--cage)">${refCount} chunks compressed by reference</strong>, ${litCount} stored literally. Total: <strong style="color:var(--cage)">${results.cage.bpb} bpb</strong> vs. 2.0 bpb flat encoding.
-        </div>
-      </div>
-      <div class="stage-body">
-        <div class="mini-steps">
-          ${rulesHtml || '<div class="mini-step"><div class="mini-step-num">!</div><div class="mini-step-content"><div class="mini-step-title">No grammar rules generated</div><div class="mini-step-desc">No bucket collisions found — try a more repetitive sequence like "Synthetic" or "RC Repeats".</div></div></div>'}
-        </div>
-        <div class="callout callout-cage">
-          ✅ <strong>Storage breakdown:</strong>
-          Each template chunk costs <strong>2 × L = ${2*pL} bits</strong> (2 bits per base).
-          Each referenced chunk costs only a <strong>pointer (${Math.ceil(Math.log2(chunks.length+1))} bits) + edit script</strong> — typically much less than storing the full block.
-          The more repetitive the DNA (like genomes with tandem repeats), the bigger the savings.
-        </div>
-      </div>`;
-  }
-
-  // ─── STAGE 5: LSH BUCKET EXPLORER ─────────────────────────
-  else if (simStage === 5) {
-    container.innerHTML = `
-      <div class="stage-banner">
-        <div class="sb-label">Stage 05 — LSH Bucket Explorer</div>
-        <div class="sb-title">Inspect exactly which chunks collided in the Locality-Sensitive Hashing step</div>
-        <div class="sb-analogy">
-          <strong>Real-world analogy:</strong> This is like looking into the sorting bins at a post office. Each bin (bucket) contains envelopes (chunks) that look nearly identical. Here you can click on any bucket to see the exact sequence alignment and the resulting edit-scripts for the chunks that landed together.
-        </div>
-      </div>
-      <div class="bucket-layout" style="height: 400px; display: flex; gap: 10px; padding: 0 16px 16px 16px;">
-        <div class="bkt-list" id="bkt-list" style="width: 200px; overflow-y: auto;"></div>
-        <div class="bkt-detail" id="bkt-detail" style="flex: 1; overflow-y: auto;"></div>
+    
+    visHtml = `
+      <div class="vis-panel" style="margin-bottom:16px;">
+        <div class="vis-title">🧮 MinHash Sketch & Banding for C_${chunks[c].idx}</div>
+        <div>${bandsHtml}</div>
       </div>
     `;
-    // Populate the newly injected divs with the existing bucket logic
-    renderBuckets();
   }
+  else if (bkt) {
+    const tmpl = chunks[bkt.tmplIdx];
+    visHtml = `
+      <div class="vis-panel" style="margin-bottom:16px;">
+        <div class="vis-title">🎯 LSH Bucket Collision</div>
+        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; border-left:3px solid var(--cage);">
+          <strong style="color:var(--cage);">Bucket 0x${bkt.key.toString(16).substring(0,8)}</strong><br>
+          <span style="font-size:12px; color:var(--muted);">Members: ${bkt.members.map(m=>`C_${m}`).join(', ')}</span><br>
+          <span style="font-size:12px; color:var(--muted);">Template: C_${bkt.tmplIdx} (${tmpl.seq.substring(0,20)}...)</span>
+        </div>
+      </div>
+    `;
+  }
+  else if (customVis) {
+    visHtml = `
+      <div class="vis-panel" style="margin-bottom:16px;">
+        ${customVis}
+      </div>
+    `;
+  }
+  
+  container.innerHTML = `
+    ${visHtml}
+    <div class="vis-panel">
+      ${html}
+    </div>
+  `;
 }
 
 // Highlight chunk in stage 1
