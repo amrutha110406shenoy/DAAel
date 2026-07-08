@@ -346,10 +346,13 @@
     <div class="brand-name">CAGE<em>.dna</em></div>
     <span class="badge">DAA Project</span>
   </div>
-  <div class="nav-tabs">
+  <div class="nav-tabs" style="overflow-x: auto; white-space: nowrap; padding-right: 20px;">
     <button class="nav-tab active" id="tab-dashboard" onclick="setTab('dashboard',this)">📊 Dashboard</button>
-    <button class="nav-tab" id="tab-simulator" onclick="setTab('simulator',this)">🔬 Step Walkthrough</button>
+    <button class="nav-tab" id="tab-simulator" onclick="setTab('simulator',this)">🔬 CAGE Walkthrough</button>
     <button class="nav-tab" id="tab-buckets" onclick="setTab('buckets',this)">🪣 LSH Buckets</button>
+    <button class="nav-tab" id="tab-dnacomp" onclick="setTab('dnacomp',this)">🧬 DNACompress</button>
+    <button class="nav-tab" id="tab-biocomp" onclick="setTab('biocomp',this)">🔄 BioCompress</button>
+    <button class="nav-tab" id="tab-gencomp" onclick="setTab('gencomp',this)">⚙️ GenCompress</button>
     <button class="nav-tab" id="tab-math" onclick="setTab('math',this)">📐 Theory</button>
   </div>
 </nav>
@@ -592,6 +595,39 @@
           <h3>Grammar Rule Bit Cost</h3>
           <div class="math-block">Size<sub>bits</sub> = Σ<sub>templates</sub>(2·L) + Σ<sub>referenced</sub>[ptr + Σ<sub>edits</sub>(log₂L + 4)] + Σ<sub>literals</sub>(2·L)</div>
           <p>where ptr = log₂(#chunks), each edit costs ≈ log₂(L) bits for position + 2 bits opcode + 2 bits base value. Typical genomic output: <strong>0.6–1.4 bpb</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DNACOMPRESS ===== -->
+    <div class="view" id="view-dnacomp">
+      <div style="padding: 24px;">
+        <div class="math-card" style="border-color: #cbd5e1;">
+          <h3 style="color: #cbd5e1;">🧬 DNACompress Visualization</h3>
+          <p>DNACompress uses <strong>PatternHunter</strong> (suffix trees/arrays) to find all exact and approximate repeats globally before encoding them.</p>
+          <div id="vis-dnacomp-content" style="margin-top: 20px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BIOCOMPRESS ===== -->
+    <div class="view" id="view-biocomp">
+      <div style="padding: 24px;">
+        <div class="math-card" style="border-color: var(--greedy);">
+          <h3 style="color: var(--greedy);">🔄 BioCompress Visualization</h3>
+          <p>BioCompress uses a <strong>Ziv-Lempel sliding window</strong> to greedily find the longest <em>exact</em> match in the previously seen sequence.</p>
+          <div id="vis-biocomp-content" style="margin-top: 20px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== GENCOMPRESS ===== -->
+    <div class="view" id="view-gencomp">
+      <div style="padding: 24px;">
+        <div class="math-card" style="border-color: var(--dp);">
+          <h3 style="color: var(--dp);">⚙️ GenCompress Visualization</h3>
+          <p>GenCompress uses a <strong>Dynamic Programming (DP) edit matrix</strong> to find the optimal <em>approximate</em> match (allowing substitutions, insertions, and deletions).</p>
+          <div id="vis-gencomp-content" style="margin-top: 20px;"></div>
         </div>
       </div>
     </div>
@@ -938,7 +974,91 @@ function setTab(id, btn) {
   document.getElementById('view-' + id).classList.add('active');
   if (id === 'simulator') renderSim();
   if (id === 'buckets') renderBuckets();
+  if (id === 'dnacomp') renderDNAComp();
+  if (id === 'biocomp') renderBioComp();
+  if (id === 'gencomp') renderGenComp();
 }
+
+function renderDNAComp() {
+  const div = document.getElementById('vis-dnacomp-content');
+  if (!activeDna) return;
+  // Simple visualization of global seed finding
+  let html = `<div style="font-family:var(--mono); font-size:12px; margin-bottom:16px;">Finding seeds of length 8 in sequence of length ${activeDna.length}...</div>`;
+  const seeds = {};
+  for(let i=0; i<=activeDna.length-8; i+=4) {
+    const s = activeDna.substring(i, i+8);
+    if(!seeds[s]) seeds[s] = [];
+    seeds[s].push(i);
+  }
+  let hits = 0;
+  for(const [k, arr] of Object.entries(seeds)) {
+    if(arr.length > 1) {
+      hits++;
+      html += `<div style="background:var(--bg4); padding:10px; border-radius:6px; margin-bottom:8px; border-left:3px solid #cbd5e1;">
+        <strong style="color:#cbd5e1;">Seed: ${k}</strong> found at positions: ${arr.join(', ')}
+      </div>`;
+    }
+  }
+  if (hits === 0) html += `<div class="placeholder">No global repeats of length 8 found.</div>`;
+  div.innerHTML = html;
+}
+
+function renderBioComp() {
+  const div = document.getElementById('vis-biocomp-content');
+  if (!activeDna) return;
+  let html = `<div style="font-family:var(--mono); font-size:12px; margin-bottom:16px;">Greedy exact match scan...</div><div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+  
+  let i = 0;
+  while(i < activeDna.length && i < 200) {
+    let bestLen = 0, bestPos = -1;
+    for(let j=0; j<i; j++) {
+      let l = 0;
+      while(i+l < activeDna.length && activeDna[j+l] === activeDna[i+l]) l++;
+      if (l > bestLen) { bestLen = l; bestPos = j; }
+    }
+    if (bestLen >= 4) {
+      html += `<div style="background:var(--greedy-glow); border:1px solid var(--greedy); color:var(--greedy); padding:4px 6px; border-radius:4px;" title="Match length ${bestLen} at pos ${bestPos}">Copy(${i-bestPos}, ${bestLen})</div>`;
+      i += bestLen;
+    } else {
+      html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px;">${activeDna[i]}</div>`;
+      i++;
+    }
+  }
+  if (activeDna.length > 200) html += `<div>...</div>`;
+  html += `</div>`;
+  div.innerHTML = html;
+}
+
+function renderGenComp() {
+  const div = document.getElementById('vis-gencomp-content');
+  if (!activeDna) return;
+  let html = `<div style="font-family:var(--mono); font-size:12px; margin-bottom:16px;">DP approximate match scan (allows edits)...</div><div style="display:flex; flex-wrap:wrap; gap:4px; font-family:var(--mono); font-size:11px;">`;
+  
+  let i = 0;
+  while(i < activeDna.length && i < 200) {
+    let bestLen = 0, bestPos = -1, bestEdits = 0;
+    for(let j=0; j<i; j++) {
+      let l = 0, edits = 0;
+      while(i+l < activeDna.length) {
+        if (activeDna[j+l] !== activeDna[i+l]) edits++;
+        if (edits > 1) break; // allow max 1 edit for visualization
+        l++;
+      }
+      if (l > bestLen) { bestLen = l; bestPos = j; bestEdits = edits; }
+    }
+    if (bestLen >= 6) {
+      html += `<div style="background:var(--dp-glow); border:1px solid var(--dp); color:var(--dp); padding:4px 6px; border-radius:4px;" title="Approx Match len ${bestLen} at pos ${bestPos} with ${bestEdits} edits">Approx(${i-bestPos}, ${bestLen}, ${bestEdits}e)</div>`;
+      i += bestLen;
+    } else {
+      html += `<div style="background:var(--bg4); border:1px solid var(--border); padding:4px 6px; border-radius:4px;">${activeDna[i]}</div>`;
+      i++;
+    }
+  }
+  if (activeDna.length > 200) html += `<div>...</div>`;
+  html += `</div>`;
+  div.innerHTML = html;
+}
+
 function triggerDebounce() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => runPipeline(), 600);
@@ -988,6 +1108,9 @@ function runPipeline() {
   if (activeView) {
     if (activeView.id === 'view-simulator') renderSim();
     if (activeView.id === 'view-buckets') renderBuckets();
+    if (activeView.id === 'view-dnacomp') renderDNAComp();
+    if (activeView.id === 'view-biocomp') renderBioComp();
+    if (activeView.id === 'view-gencomp') renderGenComp();
   }
 }
 
