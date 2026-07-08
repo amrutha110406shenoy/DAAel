@@ -353,7 +353,7 @@
     <button class="nav-tab" id="tab-dnacomp" onclick="setTab('dnacomp',this)">🧬 DNACompress</button>
     <button class="nav-tab" id="tab-biocomp" onclick="setTab('biocomp',this)">🔄 BioCompress</button>
     <button class="nav-tab" id="tab-gencomp" onclick="setTab('gencomp',this)">⚙️ GenCompress</button>
-    <button class="nav-tab" id="tab-math" onclick="setTab('math',this)">📐 Theory</button>
+    <button class="nav-tab" id="tab-math" onclick="setTab('math',this)">🏆 Comparison</button>
   </div>
 </nav>
 
@@ -543,39 +543,55 @@
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
             <!-- DNACompress -->
-            <div style="background: var(--bg4); border: 1px solid var(--border); padding: 14px; border-radius: 10px;">
-              <div style="color: #cbd5e1; font-weight: 700; font-size: 13px; margin-bottom: 6px;">DNACompress</div>
-              <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">Uses PatternHunter to find exact/approximate repeats, then encodes non-repeats using a 2-bit or Huffman model.</div>
-              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 9px;">
-                <span style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">Search: Suffix Trees</span>
-                <span style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">Time: O(N log N)</span>
+            <div style="background: var(--bg4); border: 1px solid var(--border); padding: 14px; border-radius: 10px; display: flex; flex-direction: column;">
+              <div style="color: #cbd5e1; font-weight: 700; font-size: 14px; margin-bottom: 6px;">DNACompress</div>
+              <div style="font-size: 11px; color: var(--muted); margin-bottom: 12px; flex-grow: 1;">Uses PatternHunter to find exact/approximate repeats, then encodes non-repeats using a 2-bit or Huffman model.</div>
+              <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; margin-bottom: 8px; font-size: 11px;">
+                <div style="color: #cbd5e1; font-weight: 600; margin-bottom: 4px;">✅ Best For:</div>
+                <div style="color: var(--text);">Large sequences where heuristic suffix tree approximations provide a good balance of speed and ratio.</div>
+              </div>
+              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 10px;">
+                <span style="background: rgba(255,255,255,0.05); padding: 3px 6px; border-radius: 4px;">Time: O(N log N)</span>
+                <span style="background: rgba(255,255,255,0.05); padding: 3px 6px; border-radius: 4px;">Space: O(N)</span>
               </div>
             </div>
             <!-- BioCompress -->
-            <div style="background: var(--bg4); border: 1px solid var(--greedy-glow); padding: 14px; border-radius: 10px; border-left: 3px solid var(--greedy);">
-              <div style="color: var(--greedy); font-weight: 700; font-size: 13px; margin-bottom: 6px;">BioCompress / BioCompress-2</div>
-              <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">Sliding window (Ziv-Lempel style) finding longest exact repeats. BioCompress-2 adds 2nd order Markov models.</div>
-              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 9px;">
-                <span style="background: var(--greedy-glow); color: var(--greedy); padding: 2px 6px; border-radius: 4px;">Search: Greedy Ziv-Lempel</span>
-                <span style="background: var(--greedy-glow); color: var(--greedy); padding: 2px 6px; border-radius: 4px;">Time: O(N²)</span>
+            <div style="background: var(--bg4); border: 1px solid var(--greedy-glow); padding: 14px; border-radius: 10px; border-left: 3px solid var(--greedy); display: flex; flex-direction: column;">
+              <div style="color: var(--greedy); font-weight: 700; font-size: 14px; margin-bottom: 6px;">BioCompress / BioCompress-2</div>
+              <div style="font-size: 11px; color: var(--muted); margin-bottom: 12px; flex-grow: 1;">Sliding window (Ziv-Lempel style) finding longest exact repeats. BioCompress-2 adds 2nd order Markov models.</div>
+              <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; margin-bottom: 8px; font-size: 11px;">
+                <div style="color: var(--greedy); font-weight: 600; margin-bottom: 4px;">✅ Best For:</div>
+                <div style="color: var(--text);">Small, simple sequences with long, identical exact repeats. Struggles with mutations.</div>
+              </div>
+              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 10px;">
+                <span style="background: var(--greedy-glow); color: var(--greedy); padding: 3px 6px; border-radius: 4px;">Time: O(N²)</span>
+                <span style="background: var(--greedy-glow); color: var(--greedy); padding: 3px 6px; border-radius: 4px;">Space: O(N)</span>
               </div>
             </div>
             <!-- GenCompress -->
-            <div style="background: var(--bg4); border: 1px solid var(--dp-glow); padding: 14px; border-radius: 10px; border-left: 3px solid var(--dp);">
-              <div style="color: var(--dp); font-weight: 700; font-size: 13px; margin-bottom: 6px;">GenCompress</div>
-              <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">One-pass algorithm using dynamic programming to find optimal approximate repeats with edit operations.</div>
-              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 9px;">
-                <span style="background: var(--dp-glow); color: var(--dp); padding: 2px 6px; border-radius: 4px;">Search: Full DP Matrix</span>
-                <span style="background: var(--dp-glow); color: var(--dp); padding: 2px 6px; border-radius: 4px;">Time: O(N²)</span>
+            <div style="background: var(--bg4); border: 1px solid var(--dp-glow); padding: 14px; border-radius: 10px; border-left: 3px solid var(--dp); display: flex; flex-direction: column;">
+              <div style="color: var(--dp); font-weight: 700; font-size: 14px; margin-bottom: 6px;">GenCompress</div>
+              <div style="font-size: 11px; color: var(--muted); margin-bottom: 12px; flex-grow: 1;">One-pass algorithm using dynamic programming to find optimal approximate repeats with edit operations.</div>
+              <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; margin-bottom: 8px; font-size: 11px;">
+                <div style="color: var(--dp); font-weight: 600; margin-bottom: 4px;">✅ Best For:</div>
+                <div style="color: var(--text);">Moderate-sized sequences where getting the absolute maximal compression ratio is worth the long computation time.</div>
+              </div>
+              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 10px;">
+                <span style="background: var(--dp-glow); color: var(--dp); padding: 3px 6px; border-radius: 4px;">Time: O(N²)</span>
+                <span style="background: var(--dp-glow); color: var(--dp); padding: 3px 6px; border-radius: 4px;">Space: O(N²)</span>
               </div>
             </div>
             <!-- CAGE -->
-            <div style="background: var(--cage-glow); border: 1px solid var(--cage); padding: 14px; border-radius: 10px; box-shadow: inset 0 0 20px rgba(0,212,170,0.05);">
-              <div style="color: var(--cage); font-weight: 700; font-size: 13px; margin-bottom: 6px;">RC-Aware CAGE (Proposed)</div>
-              <div style="font-size: 11px; color: var(--text); margin-bottom: 8px;">Concurrent MinHash LSH chunking mapping mutations and reverse-complements in O(1) bucket lookups.</div>
-              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 9px;">
-                <span style="background: rgba(0,212,170,0.2); color: var(--cage); padding: 2px 6px; border-radius: 4px;">Search: MinHash LSH</span>
-                <span style="background: rgba(0,212,170,0.2); color: var(--cage); padding: 2px 6px; border-radius: 4px;">Time: O(N log N)</span>
+            <div style="background: var(--cage-glow); border: 1px solid var(--cage); padding: 14px; border-radius: 10px; box-shadow: inset 0 0 20px rgba(0,212,170,0.05); display: flex; flex-direction: column;">
+              <div style="color: var(--cage); font-weight: 700; font-size: 14px; margin-bottom: 6px;">RC-Aware CAGE (Proposed)</div>
+              <div style="font-size: 11px; color: var(--text); margin-bottom: 12px; flex-grow: 1;">Concurrent MinHash LSH chunking mapping mutations and reverse-complements in O(1) bucket lookups.</div>
+              <div style="background: rgba(0,212,170,0.1); padding: 8px; border-radius: 6px; margin-bottom: 8px; font-size: 11px; border: 1px solid rgba(0,212,170,0.2);">
+                <div style="color: var(--cage); font-weight: 600; margin-bottom: 4px;">✅ Best For:</div>
+                <div style="color: var(--text);">Extremely large, highly mutated genomes with structural variants and reverse-complements. Ultra-fast probabilistic approximation.</div>
+              </div>
+              <div style="display: flex; gap: 4px; font-family: var(--mono); font-size: 10px;">
+                <span style="background: rgba(0,212,170,0.2); color: var(--cage); padding: 3px 6px; border-radius: 4px;">Time: O(N log N)</span>
+                <span style="background: rgba(0,212,170,0.2); color: var(--cage); padding: 3px 6px; border-radius: 4px;">Space: O(N)</span>
               </div>
             </div>
           </div>
