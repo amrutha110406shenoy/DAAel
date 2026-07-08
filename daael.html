@@ -1,830 +1,1442 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Data Compression Algorithm Visualizer</title>
-<style>
-:root {
-  --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --surface: #1c2128;
-  --border: #30363d; --border2: #484f58; --text: #e6edf3; --muted: #8b949e;
-  --green: #3fb950; --green-dim: #1a4223; --blue: #388bfd; --blue-dim: #1f3a5f;
-  --amber: #d29922; --amber-dim: #3d2e00; --red: #f85149; --red-dim: #3d1a1a;
-  --purple: #bc8cff; --purple-dim: #2d1f5e; --orange: #f0883e; --cyan: #56d364;
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RC-Aware CAGE | DNA Compression Visualizer</title>
+  <meta name="description" content="Beginner-friendly interactive dashboard for CAGE, BioCompress, and GenCompress DNA compression algorithms.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:#080c14; --bg2:#0d1421; --bg3:#111827; --bg4:#1a2235;
+      --border:#2a3650; --border2:#3d4f6e;
+      --text:#e8edf5; --muted:#7a8ba8; --dim:#4a5a70;
+      --cage:#00d4aa; --cage-glow:rgba(0,212,170,0.12);
+      --greedy:#f59e0b; --greedy-glow:rgba(245,158,11,0.12);
+      --dp:#a78bfa; --dp-glow:rgba(167,139,250,0.12);
+      --blue:#3b82f6; --red:#ef4444; --green:#22c55e;
+      --font:'Inter',system-ui,sans-serif;
+      --mono:'JetBrains Mono','Cascadia Code',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden;}
+    ::-webkit-scrollbar{width:5px;height:5px;}
+    ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
 
-.topnav {
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-  padding: 0 20px; display: flex; align-items: center; height: 52px;
-  position: sticky; top: 0; z-index: 100; gap: 0;
-}
-.logo { font-size: 15px; font-weight: 700; color: var(--green); letter-spacing: -0.5px; margin-right: 32px; white-space: nowrap; }
-.logo span { color: var(--text); }
-.nav-tabs { display: flex; gap: 2px; overflow-x: auto; }
-.nav-tab {
-  padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
-  cursor: pointer; color: var(--muted); border: 1px solid transparent;
-  background: none; white-space: nowrap; transition: all 0.15s; font-family: var(--font);
-}
-.nav-tab:hover { color: var(--text); background: var(--bg3); }
-.nav-tab.active { color: var(--text); background: var(--bg3); border-color: var(--border); }
-.nav-tab .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+    /* NAVBAR */
+    .navbar{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;
+      padding:0 24px;height:60px;background:rgba(8,12,20,0.88);backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border);}
+    .brand{display:flex;align-items:center;gap:10px;}
+    .brand-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--cage),var(--dp));
+      display:flex;align-items:center;justify-content:center;font-weight:800;color:#000;font-size:16px;
+      box-shadow:0 0 14px rgba(0,212,170,0.35);}
+    .brand-name{font-size:15px;font-weight:700;letter-spacing:-0.4px;}
+    .brand-name em{color:var(--cage);font-style:normal;}
+    .badge{font-size:10px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;padding:2px 8px;
+      border-radius:20px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:#60a5fa;}
+    .nav-tabs{display:flex;height:100%;}
+    .nav-tab{display:flex;align-items:center;gap:7px;padding:0 16px;height:100%;background:none;
+      border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:13px;font-weight:500;
+      cursor:pointer;transition:all 0.2s;font-family:var(--font);}
+    .nav-tab:hover{color:var(--text);}
+    .nav-tab.active{color:var(--cage);border-bottom-color:var(--cage);}
 
-.main-layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 52px); }
+    /* LAYOUT */
+    .layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 60px);}
 
-.left-panel { background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.panel-section { padding: 16px; border-bottom: 1px solid var(--border); }
-.panel-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-textarea {
-  width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
-  color: var(--text); font-family: var(--mono); font-size: 13px; padding: 10px;
-  resize: none; height: 72px; outline: none; transition: border-color 0.15s;
-}
-textarea:focus { border-color: var(--blue); }
-.speed-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
-input[type=range] { flex: 1; accent-color: var(--green); height: 3px; }
-.btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
-.btn {
-  padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: 500;
-  cursor: pointer; border: 1px solid var(--border); background: var(--bg3);
-  color: var(--text); transition: all 0.15s; font-family: var(--font);
-}
-.btn:hover { border-color: var(--border2); background: var(--surface); }
-.btn:active { transform: scale(0.97); }
-.btn.primary { background: var(--green-dim); border-color: var(--green); color: var(--green); }
-.btn.primary:hover { background: #1f4d2a; }
-.btn.danger { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    /* SIDEBAR */
+    .sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:18px 16px;
+      display:flex;flex-direction:column;gap:16px;overflow-y:auto;max-height:calc(100vh - 60px);}
+    .s-title{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
+      color:var(--dim);margin-bottom:8px;}
+    .presets{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+    .btn-preset{background:var(--bg3);border:1px solid var(--border);color:var(--muted);
+      font-size:11px;font-weight:500;padding:7px 8px;border-radius:7px;cursor:pointer;
+      text-align:left;transition:all 0.18s;font-family:var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .btn-preset:hover{border-color:var(--border2);color:var(--text);}
+    .btn-preset.active{border-color:var(--cage);color:var(--cage);background:var(--cage-glow);}
+    .upload-zone{border:2px dashed var(--border);border-radius:9px;padding:12px;text-align:center;
+      cursor:pointer;color:var(--muted);font-size:11px;transition:all 0.2s;margin-top:4px;}
+    .upload-zone:hover{border-color:var(--cage);color:var(--text);background:var(--cage-glow);}
+    .dna-box{width:100%;height:76px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+      color:var(--text);font-family:var(--mono);font-size:11.5px;padding:9px;resize:none;outline:none;
+      text-transform:uppercase;letter-spacing:0.5px;transition:border-color 0.2s;margin-top:6px;}
+    .dna-box:focus{border-color:var(--cage);}
+    .seq-info{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:3px;}
 
-.log-panel { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; }
-.log-entry {
-  font-size: 12px; font-family: var(--mono); color: var(--muted);
-  padding: 4px 8px; border-radius: 4px; border-left: 2px solid transparent;
-  line-height: 1.5; animation: fadeIn 0.2s ease;
-}
-.log-entry.info { color: var(--blue); border-left-color: var(--blue); background: rgba(56,139,253,0.05); }
-.log-entry.success { color: var(--green); border-left-color: var(--green); background: rgba(63,185,80,0.05); }
-.log-entry.warn { color: var(--amber); border-left-color: var(--amber); background: rgba(210,153,34,0.05); }
-.log-entry.highlight { color: var(--purple); border-left-color: var(--purple); background: rgba(188,140,255,0.05); }
+    .slider-wrap{display:flex;flex-direction:column;gap:5px;}
+    .slider-hdr{display:flex;justify-content:space-between;font-size:11.5px;}
+    .slider-name{color:var(--muted);font-weight:500;}
+    .slider-val{font-family:var(--mono);color:var(--cage);font-weight:600;}
+    input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:3px;
+      background:var(--border);outline:none;}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+      border-radius:50%;background:var(--cage);cursor:pointer;box-shadow:0 0 8px rgba(0,212,170,0.5);
+      transition:transform 0.15s;}
+    input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25);}
 
-.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 16px; border-bottom: 1px solid var(--border); }
-.metric-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
-.metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
-.metric-val { font-size: 18px; font-weight: 600; font-family: var(--mono); color: var(--text); }
-.metric-val.green { color: var(--green); }
-.metric-val.red { color: var(--red); }
+    .btn-run{background:linear-gradient(135deg,var(--cage),#00a882);color:#000;font-weight:700;
+      border:none;padding:12px;border-radius:9px;cursor:pointer;font-size:13.5px;display:flex;
+      align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 18px rgba(0,212,170,0.25);
+      transition:all 0.22s;font-family:var(--font);}
+    .btn-run:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(0,212,170,0.35);}
 
-.viz-area { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
-.viz-header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--bg2); }
-.algo-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-.algo-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
-.viz-canvas { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+    .terminal{background:#050810;border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+      font-family:var(--mono);font-size:10.5px;color:var(--cage);height:130px;overflow-y:auto;
+      box-shadow:inset 0 2px 10px rgba(0,0,0,0.6);}
+    .tline{line-height:1.5;margin-bottom:2px;}
+    .tline.ok{color:#22c55e;}
+    .tline.warn{color:var(--greedy);}
 
-.char-array { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start; }
-.char-box {
-  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
-  border-radius: 5px; font-family: var(--mono); font-size: 14px; font-weight: 600;
-  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
-  transition: all 0.25s; position: relative;
-}
-.char-box.active { background: rgba(210,153,34,0.2); border-color: var(--amber); color: var(--amber); transform: scale(1.15); z-index: 2; box-shadow: 0 0 12px rgba(210,153,34,0.3); }
-.char-box.done { background: rgba(63,185,80,0.1); border-color: var(--green); color: var(--green); }
-.char-box.group0 { background: rgba(56,139,253,0.12); border-color: rgba(56,139,253,0.5); color: var(--blue); }
-.char-box.group1 { background: rgba(188,140,255,0.12); border-color: rgba(188,140,255,0.5); color: var(--purple); }
-.char-box.group2 { background: rgba(240,136,62,0.12); border-color: rgba(240,136,62,0.5); color: var(--orange); }
-.char-box.group3 { background: rgba(63,185,80,0.12); border-color: rgba(63,185,80,0.5); color: var(--green); }
-.char-box.group4 { background: rgba(248,81,73,0.12); border-color: rgba(248,81,73,0.5); color: var(--red); }
-.char-box.group5 { background: rgba(86,211,100,0.12); border-color: rgba(86,211,100,0.5); color: var(--cyan); }
-.char-idx { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--muted); font-family: var(--mono); }
+    /* MAIN */
+    .main{padding:22px;overflow-y:auto;max-height:calc(100vh - 60px);}
+    .view{display:none;}
+    .view.active{display:block;animation:vIn 0.3s ease;}
+    @keyframes vIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-.token-strip { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
-.token { display: flex; align-items: center; gap: 2px; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; font-family: var(--mono); font-size: 13px; animation: popIn 0.3s ease; }
-.token .t-char { color: var(--blue); font-weight: 700; }
-.token .t-cnt { color: var(--amber); }
-.token .t-sep { color: var(--border2); margin: 0 2px; }
+    /* STATS */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+    .stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;
+      padding:16px 14px;position:relative;overflow:hidden;}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
+    .stat-cage::before{background:var(--cage);}
+    .stat-greedy::before{background:var(--greedy);}
+    .stat-dp::before{background:var(--dp);}
+    .stat-info::before{background:var(--blue);}
+    .stat-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+      color:var(--muted);margin-bottom:6px;}
+    .stat-value{font-size:26px;font-weight:700;font-family:var(--mono);letter-spacing:-1px;}
+    .stat-sub{font-size:10.5px;color:var(--dim);margin-top:3px;}
 
-#huffman-tree-svg { width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; display: block; min-height: 300px; }
+    /* CHARTS */
+    .charts-row{display:grid;grid-template-columns:1fr 1.3fr;gap:16px;margin-bottom:20px;}
+    .chart-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:18px;
+      display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden;}
+    .chart-hdr{display:flex;justify-content:space-between;align-items:center;}
+    .chart-title{font-size:14px;font-weight:600;}
+    .chart-wrap{position:relative;flex-grow:1;min-height:260px;}
+    .btn-bench{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:#60a5fa;
+      font-size:11px;font-weight:500;padding:5px 11px;border-radius:6px;cursor:pointer;font-family:var(--font);}
+    .bench-overlay{position:absolute;inset:0;background:rgba(8,12,20,0.9);border-radius:14px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+      opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:10;}
+    .bench-overlay.on{opacity:1;pointer-events:auto;}
+    .spinner{width:32px;height:32px;border-radius:50%;border:3px solid rgba(255,255,255,0.07);
+      border-top-color:var(--cage);animation:spin 0.9s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg)}}
 
-.code-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.code-table th { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; }
-.code-table td { padding: 7px 12px; border-bottom: 1px solid rgba(48,54,61,0.5); font-family: var(--mono); }
-.bit-0 { color: var(--blue); }
-.bit-1 { color: var(--purple); }
+    /* TWO COL INFO */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .info-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:20px;}
+    .info-card h3{font-size:14px;font-weight:600;color:var(--cage);margin-bottom:10px;
+      display:flex;align-items:center;gap:7px;}
+    .info-card p{font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:8px;}
+    .info-card p:last-child{margin-bottom:0;}
+    .info-card strong{color:var(--text);}
 
-.lzw-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.lzw-table th { padding: 7px 10px; text-align: left; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1px solid var(--border); font-weight: 500; }
-.lzw-table td { padding: 5px 10px; border-bottom: 1px solid rgba(48,54,61,0.4); font-family: var(--mono); font-size: 12px; }
-.lzw-table tr.new-entry { background: rgba(63,185,80,0.08); }
-.lzw-table tr.new-entry td:first-child { border-left: 2px solid var(--green); }
+    /* ═══════════════════════════════════════════
+       STEP WALKTHROUGH - Fully Revamped
+    ═══════════════════════════════════════════ */
+    .walkthrough-wrap{display:flex;flex-direction:column;gap:0;}
 
-.matrix-wrap { overflow-x: auto; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
-.matrix { display: flex; flex-direction: column; gap: 3px; font-family: var(--mono); font-size: 13px; }
-.matrix-row { display: flex; gap: 2px; align-items: center; padding: 2px 0; transition: background 0.2s; }
-.matrix-row.active-row { background: rgba(210,153,34,0.1); border-radius: 4px; padding: 2px 4px; }
-.matrix-cell { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 3px; background: var(--bg3); border: 1px solid var(--border); font-size: 11px; }
-.matrix-cell.highlight { background: rgba(56,139,253,0.2); border-color: var(--blue); color: var(--blue); }
-.matrix-cell.sorted { background: rgba(63,185,80,0.1); border-color: var(--green); color: var(--green); }
-.matrix-row-label { font-size: 11px; color: var(--muted); width: 24px; text-align: right; margin-right: 4px; }
+    /* Progress bar at top */
+    .walk-progress{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:24px;
+      background:var(--bg3);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+    .wp-step{padding:14px 16px;cursor:pointer;transition:all 0.2s;border-right:1px solid var(--border);position:relative;}
+    .wp-step:last-child{border-right:none;}
+    .wp-step:hover{background:rgba(255,255,255,0.02);}
+    .wp-step.active{background:var(--cage-glow);border-bottom:3px solid var(--cage);}
+    .wp-num{font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:3px;}
+    .wp-step.active .wp-num{color:var(--cage);}
+    .wp-title{font-size:13px;font-weight:600;}
+    .wp-sub{font-size:10.5px;color:var(--muted);margin-top:2px;}
+    .wp-step.done .wp-num::before{content:'✓ ';color:var(--green);}
 
-.prob-bars { display: flex; flex-direction: column; gap: 6px; }
-.prob-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
-.prob-label { font-family: var(--mono); width: 20px; color: var(--text); }
-.prob-bar-wrap { flex: 1; background: var(--bg3); border-radius: 3px; height: 16px; overflow: hidden; }
-.prob-bar { height: 100%; border-radius: 3px; transition: width 0.5s; background: var(--blue); }
-.prob-val { font-family: var(--mono); color: var(--muted); font-size: 11px; width: 70px; text-align: right; }
+    /* Stage container */
+    .stage-container{background:var(--bg3);border:1px solid var(--border);border-radius:16px;
+      padding:0;overflow:hidden;}
 
-.sec-hdr { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
-.desc-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-.desc-panel p { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 8px; }
-.desc-panel p:last-child { margin-bottom: 0; }
-.desc-panel strong { color: var(--text); }
-.complexity-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.complexity-badge { font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--bg3); border: 1px solid var(--border); color: var(--muted); }
-.complexity-badge span { color: var(--green); }
+    /* Explain banner at top of each stage */
+    .stage-banner{padding:20px 24px;border-bottom:1px solid var(--border);
+      background:linear-gradient(135deg,rgba(0,212,170,0.04),rgba(0,0,0,0));}
+    .sb-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+      color:var(--cage);margin-bottom:6px;}
+    .sb-title{font-size:17px;font-weight:700;margin-bottom:8px;}
+    .sb-analogy{font-size:13px;color:var(--muted);line-height:1.65;
+      background:rgba(0,0,0,0.2);border-left:3px solid var(--cage);
+      padding:10px 14px;border-radius:0 8px 8px 0;margin-top:8px;}
+    .sb-analogy strong{color:var(--text);}
 
-.output-strip { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.out-code { font-family: var(--mono); font-size: 12px; padding: 3px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; color: var(--purple); animation: popIn 0.3s ease; }
-.out-code.new { border-color: var(--purple); background: rgba(188,140,255,0.1); }
+    /* Stage body */
+    .stage-body{padding:22px 24px;display:flex;flex-direction:column;gap:18px;}
 
-.step-nav { display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: var(--bg2); border-top: 1px solid var(--border); flex-shrink: 0; }
-.step-counter { font-size: 12px; color: var(--muted); font-family: var(--mono); background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px; }
+    /* Mini step boxes inside each stage */
+    .mini-steps{display:flex;flex-direction:column;gap:12px;}
+    .mini-step{display:flex;gap:14px;align-items:flex-start;}
+    .mini-step-num{width:28px;height:28px;border-radius:50%;background:var(--bg4);border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+      color:var(--cage);flex-shrink:0;margin-top:2px;}
+    .mini-step-content{flex:1;}
+    .mini-step-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+    .mini-step-desc{font-size:12px;color:var(--muted);line-height:1.5;}
 
-@keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: none; } }
-@keyframes popIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-</style>
+    /* Visual panels */
+    .vis-panel{background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:16px;}
+    .vis-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+      color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+
+    /* DNA sequence display with base highlighting */
+    .dna-display{display:flex;flex-wrap:wrap;gap:3px;font-family:var(--mono);}
+    .base{display:inline-flex;align-items:center;justify-content:center;width:24px;height:28px;
+      border-radius:5px;font-size:12px;font-weight:700;border:1px solid;transition:all 0.3s;}
+    .base-A{background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.4);color:#86efac;}
+    .base-T{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);color:#fca5a5;}
+    .base-C{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.4);color:#93c5fd;}
+    .base-G{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.4);color:#fde68a;}
+    .base-N{background:rgba(74,90,112,0.15);border-color:rgba(74,90,112,0.3);color:var(--dim);}
+    .base.chunk-hi{box-shadow:0 0 0 2px var(--cage);transform:scale(1.1);}
+    .base.faded{opacity:0.2;}
+    .base.pos-label{position:relative;}
+
+    /* Chunk blocks */
+    .chunk-list{display:flex;flex-wrap:wrap;gap:8px;}
+    .chunk-block{background:var(--bg);border:1px solid var(--border);border-radius:8px;
+      padding:8px 10px;cursor:pointer;transition:all 0.2s;}
+    .chunk-block:hover,.chunk-block.sel{border-color:var(--cage);background:var(--cage-glow);}
+    .cb-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+    .cb-id{font-size:10px;font-weight:700;color:var(--cage);font-family:var(--mono);}
+    .cb-pos{font-size:9.5px;color:var(--dim);}
+    .cb-seq{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:0.5px;
+      word-break:break-all;}
+
+    /* RC pair display */
+    .rc-pair{display:flex;flex-direction:column;gap:6px;}
+    .rc-row{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;}
+    .rc-label{width:80px;font-size:10px;font-weight:600;text-transform:uppercase;
+      color:var(--muted);letter-spacing:0.5px;flex-shrink:0;}
+    .rc-seq{display:flex;gap:2px;}
+    .rc-arrow{color:var(--cage);font-size:18px;margin:0 4px;}
+    .canon-badge{background:var(--cage-glow);border:1px solid var(--cage);color:var(--cage);
+      font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px;}
+
+    /* Hash function table */
+    .hash-table{width:100%;border-collapse:collapse;font-size:11.5px;}
+    .hash-table th{text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);
+      color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.8px;}
+    .hash-table td{padding:6px 10px;border-bottom:1px solid rgba(42,54,80,0.4);
+      font-family:var(--mono);}
+    .hash-table tr:last-child td{border-bottom:none;}
+    .hash-min{color:var(--cage);font-weight:700;}
+
+    /* Sketch vector */
+    .sketch-vec{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+    .sv-cell{width:50px;height:30px;display:flex;align-items:center;justify-content:center;
+      background:var(--bg);border:1px solid var(--border);border-radius:4px;
+      font-family:var(--mono);font-size:9.5px;color:var(--muted);}
+    .sv-cell.min-val{border-color:var(--cage);color:var(--cage);background:var(--cage-glow);}
+
+    /* Band visual */
+    .band-visual{display:flex;flex-direction:column;gap:8px;}
+    .band-row-vis{border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+    .bv-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;
+      background:var(--bg4);}
+    .bv-label{font-size:11.5px;font-weight:600;}
+    .bv-key{font-family:var(--mono);font-size:10.5px;color:var(--cage);}
+    .bv-cells{display:flex;gap:3px;padding:8px 12px;background:rgba(0,0,0,0.15);}
+    .bvc{width:44px;height:26px;display:flex;align-items:center;justify-content:center;
+      background:var(--bg);border:1px solid var(--border);border-radius:4px;
+      font-family:var(--mono);font-size:9px;color:var(--muted);}
+    .band-match{border-color:var(--cage) !important;}
+    .band-match .bv-header{background:var(--cage-glow);}
+    .band-match .bv-label{color:var(--cage);}
+
+    /* Bucket display */
+    .bucket-vis{display:flex;flex-direction:column;gap:10px;}
+    .bkt-group{background:var(--bg4);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+    .bkt-hdr{display:flex;justify-content:space-between;align-items:center;
+      padding:10px 14px;border-bottom:1px solid var(--border);}
+    .bkt-name{font-size:12px;font-weight:700;}
+    .bkt-cnt{background:var(--cage-glow);color:var(--cage);font-size:10px;font-weight:700;
+      padding:2px 8px;border-radius:12px;}
+    .bkt-body{padding:12px 14px;display:flex;flex-direction:column;gap:6px;}
+
+    /* Edit diff view */
+    .diff-view{font-family:var(--mono);font-size:12px;}
+    .diff-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .diff-label{width:90px;font-size:10px;font-weight:600;text-transform:uppercase;
+      color:var(--muted);flex-shrink:0;}
+    .diff-label.tmpl{color:var(--cage);}
+    .diff-bases{display:flex;gap:2px;flex-wrap:wrap;}
+    .db{display:inline-flex;align-items:center;justify-content:center;
+      width:22px;height:22px;border-radius:4px;font-size:10.5px;font-weight:600;border:1px solid;}
+    .db.m{background:rgba(74,90,112,0.12);border-color:rgba(74,90,112,0.2);color:var(--dim);}
+    .db.s{background:rgba(239,68,68,0.18);border-color:rgba(239,68,68,0.5);color:#fca5a5;}
+    .db.i{background:rgba(34,197,94,0.18);border-color:rgba(34,197,94,0.5);color:#86efac;}
+    .db.d{background:rgba(59,130,246,0.18);border-color:rgba(59,130,246,0.5);color:#93c5fd;}
+
+    /* Rule box */
+    .rule-box{border-left:3px solid var(--cage);border-radius:0 8px 8px 0;background:var(--bg4);
+      padding:10px 14px;font-family:var(--mono);font-size:12px;color:var(--text);line-height:1.6;}
+    .rule-box.lit{border-left-color:var(--greedy);}
+
+    /* Nav controls bottom */
+    .stage-nav{display:flex;justify-content:space-between;align-items:center;
+      padding:16px 24px;border-top:1px solid var(--border);background:rgba(0,0,0,0.1);}
+    .btn-stage{background:var(--bg4);border:1px solid var(--border);color:var(--text);
+      padding:7px 16px;border-radius:7px;cursor:pointer;font-size:12.5px;font-family:var(--font);
+      display:flex;align-items:center;gap:6px;transition:all 0.18s;}
+    .btn-stage:hover:not(:disabled){border-color:var(--cage);color:var(--cage);}
+    .btn-stage:disabled{opacity:0.3;cursor:not-allowed;}
+    .stage-pill{background:var(--bg4);border:1px solid var(--border);font-family:var(--mono);
+      font-size:11.5px;color:var(--muted);padding:5px 14px;border-radius:20px;}
+
+    /* BUCKET EXPLORER */
+    .bucket-layout{display:grid;grid-template-columns:260px 1fr;gap:16px;}
+    .bkt-list{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:12px;
+      max-height:560px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+    .bkt-item{background:var(--bg4);border:1px solid var(--border);border-radius:8px;
+      padding:10px 12px;cursor:pointer;transition:all 0.18s;}
+    .bkt-item:hover{border-color:var(--border2);}
+    .bkt-item.active{border-color:var(--cage);background:var(--cage-glow);}
+    .bi-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px;}
+    .bi-hash{font-family:var(--mono);font-size:12px;font-weight:600;}
+    .bi-badge{background:var(--cage-glow);color:var(--cage);font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;}
+    .bkt-detail{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;
+      display:flex;flex-direction:column;gap:16px;max-height:560px;overflow-y:auto;}
+    .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;}
+    .legend-item{display:flex;align-items:center;gap:4px;color:var(--muted);}
+    .ldot{width:10px;height:10px;border-radius:3px;}
+    .aln-wrap{background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:10px;
+      padding:14px;overflow-x:auto;}
+    .aln-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;white-space:nowrap;}
+    .aln-label{width:120px;flex-shrink:0;font-size:10px;font-weight:600;text-transform:uppercase;
+      color:var(--muted);}
+    .aln-label.tpl{color:var(--cage);}
+
+    /* MATH VIEW */
+    .math-stack{display:flex;flex-direction:column;gap:16px;}
+    .math-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:22px;}
+    .math-card h3{font-size:14px;font-weight:600;color:var(--dp);margin-bottom:10px;}
+    .math-card p{font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:8px;}
+    .math-card p:last-child{margin-bottom:0;}
+    .math-block{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;
+      padding:16px 20px;font-family:var(--mono);color:#60a5fa;font-size:14px;line-height:1.7;margin:10px 0;}
+    .complexity-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;}
+    .complexity-table th{text-align:left;padding:7px 12px;border-bottom:1px solid var(--border);
+      color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.8px;}
+    .complexity-table td{padding:7px 12px;border-bottom:1px solid rgba(42,54,80,0.4);font-family:var(--mono);}
+
+    .placeholder{color:var(--muted);font-size:13px;text-align:center;padding:28px 0;}
+
+    /* Callout boxes */
+    .callout{border-radius:10px;padding:12px 16px;font-size:12.5px;line-height:1.6;margin-top:4px;}
+    .callout-cage{background:var(--cage-glow);border:1px solid rgba(0,212,170,0.25);color:#a7f3d0;}
+    .callout-info{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#93c5fd;}
+    .callout strong{color:var(--text);}
+  </style>
 </head>
 <body>
 
-<nav class="topnav">
-  <div class="logo">compress<span>.viz</span></div>
-  <div class="nav-tabs" id="nav-tabs">
-    <button class="nav-tab active" data-algo="rle"><span class="dot" style="background:#388bfd"></span>RLE</button>
-    <button class="nav-tab" data-algo="huffman"><span class="dot" style="background:#d29922"></span>Huffman</button>
-    <button class="nav-tab" data-algo="lzw"><span class="dot" style="background:#bc8cff"></span>LZW</button>
-    <button class="nav-tab" data-algo="bwt"><span class="dot" style="background:#f0883e"></span>BWT</button>
-    <button class="nav-tab" data-algo="compare"><span class="dot" style="background:#8b949e"></span>Compare</button>
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="brand">
+    <div class="brand-icon">C</div>
+    <div class="brand-name">CAGE<em>.dna</em></div>
+    <span class="badge">DAA Project</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-dashboard" onclick="setTab('dashboard',this)">📊 Dashboard</button>
+    <button class="nav-tab" id="tab-simulator" onclick="setTab('simulator',this)">🔬 Step Walkthrough</button>
+    <button class="nav-tab" id="tab-buckets" onclick="setTab('buckets',this)">🪣 LSH Buckets</button>
+    <button class="nav-tab" id="tab-math" onclick="setTab('math',this)">📐 Theory</button>
   </div>
 </nav>
 
-<div class="main-layout">
-  <div class="left-panel">
-    <div class="panel-section">
-      <div class="panel-label">Input</div>
-      <textarea id="input-text" placeholder="Type text to compress...">AABBBCCDDDDEE</textarea>
-      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn" onclick="setPreset('AABBBCCDDDDEE')">Preset 1</button>
-        <button class="btn" onclick="setPreset('MISSISSIPPI')">Preset 2</button>
-        <button class="btn" onclick="setPreset('ABRACADABRA')">Preset 3</button>
-        <button class="btn" onclick="setPreset('BANANA')">Preset 4</button>
-      </div>
-    </div>
-    <div class="panel-section">
-      <div class="panel-label">Speed</div>
-      <div class="speed-row">
-        <span>Slow</span>
-        <input type="range" id="speed-slider" min="100" max="1400" value="700" oninput="updateSpeed()">
-        <span>Fast</span>
-        <span id="speed-label" style="min-width:50px;text-align:right;font-family:var(--mono);font-size:11px">700ms</span>
-      </div>
-    </div>
-    <div class="panel-section">
-      <div class="panel-label">Controls</div>
-      <div class="btn-row">
-        <button class="btn primary" id="btn-play" onclick="playPause()">▶ Play</button>
-        <button class="btn" onclick="stepForward()">Step →</button>
-        <button class="btn" onclick="stepBack()">← Back</button>
-        <button class="btn danger" onclick="resetAll()">↺ Reset</button>
-      </div>
-    </div>
-    <div class="metrics-grid">
-      <div class="metric-card"><div class="metric-label">Original</div><div class="metric-val" id="m-orig">—</div></div>
-      <div class="metric-card"><div class="metric-label">Compressed</div><div class="metric-val" id="m-comp">—</div></div>
-      <div class="metric-card"><div class="metric-label">Ratio</div><div class="metric-val" id="m-ratio">—</div></div>
-      <div class="metric-card"><div class="metric-label">Saved</div><div class="metric-val green" id="m-saved">—</div></div>
-    </div>
-    <div class="log-panel" id="log-panel"></div>
-  </div>
+<div class="layout">
 
-  <div class="viz-area">
-    <div class="viz-header">
-      <div class="algo-title" id="algo-title">Run-Length Encoding</div>
-      <div class="algo-desc" id="algo-desc">Replaces consecutive repeated characters with the character and its count.</div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <div class="s-title">DNA Sequence Input</div>
+      <div class="presets" id="presets-row">
+        <button class="btn-preset active" onclick="loadPreset('phage',this)">🧬 Lambda Phage</button>
+        <button class="btn-preset" onclick="loadPreset('covid',this)">🦠 SARS-CoV-2</button>
+        <button class="btn-preset" onclick="loadPreset('rc_repeats',this)">🔁 RC Repeats</button>
+        <button class="btn-preset" onclick="loadPreset('synthetic',this)">⚗️ Synthetic</button>
+      </div>
+      <div class="upload-zone" onclick="document.getElementById('fasta-input').click()">
+        📁 Click to upload .fasta / .txt
+        <input type="file" id="fasta-input" style="display:none" accept=".fasta,.fa,.txt" onchange="handleFile(event)">
+      </div>
+      <textarea id="seq-box" class="dna-box" placeholder="Type or paste DNA: ATCGATCG..."></textarea>
+      <div class="seq-info">
+        <span id="seq-len">0 bp</span>
+        <span id="seq-gc">GC: —</span>
+      </div>
     </div>
-    <div class="viz-canvas" id="viz-canvas"></div>
-    <div class="step-nav">
-      <span class="step-counter" id="step-counter">Step 0 / 0</span>
-      <div style="flex:1"></div>
-      <button class="btn" onclick="stepBack()">← Back</button>
-      <button class="btn primary" id="btn-play2" onclick="playPause()">▶ Play</button>
-      <button class="btn" onclick="stepForward()">Step →</button>
+
+    <div>
+      <div class="s-title">CAGE Hyperparameters</div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div class="slider-wrap">
+          <div class="slider-hdr"><span class="slider-name">Block Size (L)</span><span class="slider-val" id="v-L">32</span></div>
+          <input type="range" id="s-L" min="8" max="48" value="32" step="4" oninput="setP('L',this.value)">
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-hdr"><span class="slider-name">k-mer Size (k)</span><span class="slider-val" id="v-k">4</span></div>
+          <input type="range" id="s-k" min="2" max="6" value="4" step="1" oninput="setP('k',this.value)">
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-hdr"><span class="slider-name">Hash Functions (h)</span><span class="slider-val" id="v-h">12</span></div>
+          <input type="range" id="s-h" min="4" max="32" value="12" step="4" oninput="setP('h',this.value)">
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-hdr"><span class="slider-name">LSH Bands (b)</span><span class="slider-val" id="v-b">3</span></div>
+          <input type="range" id="s-b" min="2" max="8" value="3" step="1" oninput="setP('b',this.value)">
+        </div>
+      </div>
     </div>
-  </div>
+
+    <button class="btn-run" onclick="runPipeline()">
+      ⚡ Run All Algorithms
+    </button>
+
+    <div>
+      <div class="s-title">Console</div>
+      <div class="terminal" id="terminal">
+        <div class="tline">System ready. Type any DNA or select a preset above.</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="view active" id="view-dashboard">
+      <div class="stats-row">
+        <div class="stat-card stat-cage">
+          <div class="stat-label">CAGE Compression</div>
+          <div class="stat-value" id="stat-cage">—</div>
+          <div class="stat-sub">bits per base (bpb)</div>
+        </div>
+        <div class="stat-card stat-greedy">
+          <div class="stat-label">BioCompress (Greedy)</div>
+          <div class="stat-value" id="stat-greedy">—</div>
+          <div class="stat-sub">bits per base (bpb)</div>
+        </div>
+        <div class="stat-card stat-dp">
+          <div class="stat-label">GenCompress (DP)</div>
+          <div class="stat-value" id="stat-dp">—</div>
+          <div class="stat-sub">bits per base (bpb)</div>
+        </div>
+        <div class="stat-card stat-info">
+          <div class="stat-label">Input Length</div>
+          <div class="stat-value" id="stat-len">—</div>
+          <div class="stat-sub">nucleotide bases</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-hdr"><span class="chart-title">Compression Efficiency (lower bpb = better)</span></div>
+          <div class="chart-wrap"><canvas id="chart-ratio"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="bench-overlay" id="bench-overlay">
+            <div class="spinner"></div>
+            <div style="font-size:12.5px;color:var(--muted)" id="bench-msg">Profiling…</div>
+          </div>
+          <div class="chart-hdr">
+            <span class="chart-title">Time Complexity Profile (N vs ms)</span>
+            <button class="btn-bench" onclick="doBenchmark()">▶ Run Benchmark</button>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-complexity"></canvas></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="info-card">
+          <h3>🧠 Breaking the O(N²) Matrix Trap</h3>
+          <p>Legacy DNA compressors like <strong>GenCompress</strong> find approximate repeats by filling an <strong>O(N²) edit-distance matrix</strong> — comparing every position against every other. For a genome of 1M bases, that's 1 trillion comparisons.</p>
+          <p><strong>CAGE</strong> replaces this with LSH bucket routing — similar blocks are hashed into shared buckets in <strong>O(1)</strong> per lookup, giving overall <strong>O(N log N)</strong> with a strict O(N) memory bound.</p>
+        </div>
+        <div class="info-card">
+          <h3>🔄 Reverse-Complement (RC) Awareness</h3>
+          <p>DNA is double-stranded. A segment may repeat in reverse-complement form elsewhere (e.g., <code>ACGT</code> matching <code>ACGT</code>'s RC = <code>ACGT</code>). Standard compressors miss these.</p>
+          <p>CAGE solves this with <strong>Canonical MinHash</strong>: for every k-mer, it picks <code>min(kmer, RC(kmer))</code> lexicographically. This makes the sketch identical for both strands — so RC-related blocks automatically land in the same bucket.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP WALKTHROUGH ===== -->
+    <div class="view" id="view-simulator">
+      <!-- Stage selector tabs -->
+      <div class="walk-progress" id="walk-progress">
+        <div class="wp-step active" id="wp-1" onclick="gotoStage(1)">
+          <div class="wp-num">STEP 01</div>
+          <div class="wp-title">Read &amp; Chunk DNA</div>
+          <div class="wp-sub">Split into overlapping blocks</div>
+        </div>
+        <div class="wp-step" id="wp-2" onclick="gotoStage(2)">
+          <div class="wp-num">STEP 02</div>
+          <div class="wp-title">Extract k-mers &amp; RC</div>
+          <div class="wp-sub">Canonical MinHash sketching</div>
+        </div>
+        <div class="wp-step" id="wp-3" onclick="gotoStage(3)">
+          <div class="wp-num">STEP 03</div>
+          <div class="wp-title">LSH Banding</div>
+          <div class="wp-sub">O(1) bucket collision</div>
+        </div>
+        <div class="wp-step" id="wp-4" onclick="gotoStage(4)">
+          <div class="wp-num">STEP 04</div>
+          <div class="wp-title">Grammar Rules</div>
+          <div class="wp-sub">Edit-script compression</div>
+        </div>
+      </div>
+
+      <!-- Stage content panel -->
+      <div class="stage-container">
+        <div id="stage-content"></div>
+        <div class="stage-nav">
+          <button class="btn-stage" id="btn-prev" onclick="stepSim(-1)" disabled>← Previous Step</button>
+          <span class="stage-pill" id="stage-pill">Step 1 / 4</span>
+          <button class="btn-stage" id="btn-next" onclick="stepSim(1)">Next Step →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== LSH BUCKETS ===== -->
+    <div class="view" id="view-buckets">
+      <div class="bucket-layout">
+        <div class="bkt-list" id="bkt-list">
+          <div class="placeholder">Run the pipeline first to see LSH buckets.</div>
+        </div>
+        <div class="bkt-detail" id="bkt-detail">
+          <div style="font-size:15px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:10px">LSH Bucket Detail</div>
+          <div class="placeholder">Select a bucket on the left to inspect alignment and grammar rules.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MATH / THEORY ===== -->
+    <div class="view" id="view-math">
+      <div class="math-stack">
+        <div class="math-card">
+          <h3>LSH Collision Probability</h3>
+          <p>Given two chunks with Jaccard similarity <strong>s</strong> over their canonical k-mer sets, using <strong>b</strong> bands each of <strong>r = h/b</strong> rows:</p>
+          <div class="math-block">P(collision) = 1 − (1 − s<sup>r</sup>)<sup>b</sup></div>
+          <p>Tuning b and r shapes the S-curve threshold. High similarity → collision → same bucket → grammar compression. Low similarity → no collision → stored literally.</p>
+        </div>
+        <div class="math-card">
+          <h3>Canonical MinHash</h3>
+          <div class="math-block">x<sub>canonical</sub> = min(x, RC(x)) &nbsp;[lexicographic]<br><br>h<sub>i</sub>(Chunk) = min<sub>x∈Chunk</sub> { hash<sub>i</sub>(x<sub>canonical</sub>) }</div>
+          <p>The canonical form is orientation-invariant: a chunk and its reverse complement produce the <strong>identical sketch vector</strong> S = [h₁, h₂, …, hₕ].</p>
+        </div>
+        <div class="math-card">
+          <h3>Algorithm Complexity Comparison</h3>
+          <table class="complexity-table">
+            <thead><tr><th>Algorithm</th><th>Time</th><th>Space</th><th>RC-Aware</th><th>Mutation-Aware</th></tr></thead>
+            <tbody>
+              <tr><td style="color:var(--cage)">CAGE</td><td style="color:var(--cage)">O(N log N)</td><td style="color:var(--cage)">O(N)</td><td style="color:var(--cage)">✔ Canonical k-mers</td><td style="color:var(--cage)">✔ Edit scripts</td></tr>
+              <tr><td style="color:var(--greedy)">BioCompress</td><td style="color:var(--greedy)">O(N²)</td><td style="color:var(--greedy)">O(N)</td><td style="color:var(--greedy)">✔ (partial)</td><td>✗</td></tr>
+              <tr><td style="color:var(--dp)">GenCompress</td><td style="color:var(--dp)">O(N²)</td><td style="color:var(--dp)">O(N²)</td><td>✗</td><td style="color:var(--dp)">✔ Full DP</td></tr>
+              <tr><td style="color:var(--muted)">Flat 2-bit</td><td>O(N)</td><td>O(N)</td><td>✗</td><td>✗</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="math-card">
+          <h3>Grammar Rule Bit Cost</h3>
+          <div class="math-block">Size<sub>bits</sub> = Σ<sub>templates</sub>(2·L) + Σ<sub>referenced</sub>[ptr + Σ<sub>edits</sub>(log₂L + 4)] + Σ<sub>literals</sub>(2·L)</div>
+          <p>where ptr = log₂(#chunks), each edit costs ≈ log₂(L) bits for position + 2 bits opcode + 2 bits base value. Typical genomic output: <strong>0.6–1.4 bpb</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <script>
-let currentAlgo = 'rle';
-let steps = [], stepIdx = 0, playing = false, playTimer = null, speed = 700;
-const COLORS = ['group0','group1','group2','group3','group4','group5'];
-
-const ALGO_META = {
-  rle:     { title: 'Run-Length Encoding (RLE)',         desc: 'Replaces consecutive repeated characters with the character and its count. O(n) time. Effective when data has many consecutive repeated symbols. Expands data when there are no repetitions.' },
-  huffman: { title: 'Huffman Coding',                    desc: 'Assigns shorter binary codes to more frequent characters, longer codes to rare ones. Builds a binary tree greedily. Produces optimal prefix-free codes. Used in ZIP, JPEG, MP3.' },
-  lzw:     { title: 'LZW Compression',                   desc: 'Dictionary-based: builds a table of patterns as it scans input. Outputs code for the longest match, then adds a new pattern. No need to transmit the dictionary — the decoder rebuilds it on the fly.' },
-  bwt:     { title: 'Burrows-Wheeler Transform (BWT)',   desc: 'A reversible transformation that rearranges text so similar characters cluster together, making subsequent compression much more effective. Used as a pre-processor in bzip2.' },
-  compare: { title: 'Algorithm Comparison',              desc: 'Run all four algorithms on the same input and compare their compression ratios side-by-side.' }
+// ═══════════════════════════════════════
+// PRESETS
+// ═══════════════════════════════════════
+const PRESETS = {
+  phage:      'GGGCGGCGACCTCGCGGGTTTTCGCTTTTTCCGGGGTTTTCCGGATTTTTCCGGCGACCTCGCGGGTTTTCGCTTTTTCATGACACTCGAGGCGGCGACCTCGCGGGTTTTCGATCGATCG',
+  covid:      'ATGTTTGTTTTTCTTGTTTTATTGCCACTAGTCTCTAGTCAGTGTGTTAATCTTACAACCAGAACTCAATTACCCCCTGCATACACTAATTCTTTCACACGTGGTGTTTATTACCCTGAC',
+  rc_repeats: 'ACGTACGTACGTACGTGGGGGGCACGTACGTACGTACGTTTTTTTACGTACGTACGTACGTACGTCAGTCAGTCAGTCAGT',
+  synthetic:  'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG'
 };
 
-// ===== NAV =====
-document.getElementById('nav-tabs').addEventListener('click', e => {
-  const tab = e.target.closest('.nav-tab');
-  if (!tab) return;
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
-  currentAlgo = tab.dataset.algo;
-  resetAll();
-  const meta = ALGO_META[currentAlgo];
-  document.getElementById('algo-title').textContent = meta.title;
-  document.getElementById('algo-desc').textContent = meta.desc;
-  if (currentAlgo === 'compare') renderCompare();
-});
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let pL=32, pk=4, ph=12, pb=3;
+let activeDna = PRESETS.phage;
+let results = null;
+let simStage = 1;
+let debounceTimer = null;
 
-function setPreset(txt) { document.getElementById('input-text').value = txt; resetAll(); }
-function updateSpeed() { speed = parseInt(document.getElementById('speed-slider').value); document.getElementById('speed-label').textContent = speed+'ms'; }
-function getInput() { return document.getElementById('input-text').value.trim() || 'HELLO'; }
+const SEEDS = [
+  16777619, 2166136261, 3752179, 982451653, 1299709, 23333333,
+  15485863, 179424673, 32452843, 49979687, 67867967, 86028121,
+  104395301, 122949829, 141650939, 160481183, 198491317, 217645199,
+  236887691, 256203161, 275604541, 295075147, 314606869, 334214459,
+  353862637, 373587883, 393342739, 413158511, 433024223, 452930477,
+  472882027, 492876847, 512927377, 533000389, 553105087, 573263017
+];
 
-// ===== LOG =====
-function log(msg, type='') {
-  const panel = document.getElementById('log-panel');
-  const el = document.createElement('div');
-  el.className = 'log-entry ' + type;
-  el.textContent = msg;
-  panel.appendChild(el);
-  panel.scrollTop = panel.scrollHeight;
-}
-function clearLog() { document.getElementById('log-panel').innerHTML = ''; }
+// ═══════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════
+let chartRatio = null, chartComplexity = null;
 
-// ===== METRICS =====
-function setMetrics(orig, comp, unit='chars') {
-  document.getElementById('m-orig').textContent = orig+' '+unit;
-  document.getElementById('m-comp').textContent = comp+' '+unit;
-  const ratio = orig>0 ? (comp/orig).toFixed(2) : '—';
-  const saved = orig>0 ? Math.round((1-comp/orig)*100) : 0;
-  document.getElementById('m-ratio').textContent = ratio+'x';
-  const el = document.getElementById('m-saved');
-  el.textContent = saved+'%';
-  el.className = 'metric-val '+(saved>0?'green':'red');
-}
-function clearMetrics() {
-  ['m-orig','m-comp','m-ratio','m-saved'].forEach(id => document.getElementById(id).textContent = '—');
-  document.getElementById('m-saved').className = 'metric-val green';
-}
+function initCharts() {
+  Chart.defaults.color = '#7a8ba8';
+  Chart.defaults.borderColor = 'rgba(42,54,80,0.6)';
 
-// ===== PLAYBACK =====
-function updatePlayBtn() {
-  const lbl = playing ? '⏸ Pause' : '▶ Play';
-  document.getElementById('btn-play').textContent = lbl;
-  document.getElementById('btn-play2').textContent = lbl;
-}
-function playPause() {
-  if (playing) { clearInterval(playTimer); playing = false; updatePlayBtn(); return; }
-  if (stepIdx >= steps.length) stepIdx = 0;
-  playing = true; updatePlayBtn();
-  playTimer = setInterval(() => {
-    if (stepIdx >= steps.length) { clearInterval(playTimer); playing = false; updatePlayBtn(); return; }
-    applyStep(stepIdx++);
-  }, speed);
-}
-function stepForward() { if (playing) { clearInterval(playTimer); playing = false; updatePlayBtn(); } if (stepIdx < steps.length) applyStep(stepIdx++); }
-function stepBack() {
-  if (playing) { clearInterval(playTimer); playing = false; updatePlayBtn(); }
-  if (stepIdx > 0) { stepIdx--; rebuildFromStart(stepIdx); }
-}
-function rebuildFromStart(target) { initCanvas(); for (let i=0;i<=target;i++) applyStep(i,true); stepIdx=target+1; }
-function resetAll() {
-  clearInterval(playTimer); playing=false; stepIdx=0; steps=[];
-  updatePlayBtn(); clearLog(); updateCounter(); initCanvas(); clearMetrics();
-  if (currentAlgo !== 'compare') buildSteps();
-}
-function updateCounter() { document.getElementById('step-counter').textContent = `Step ${stepIdx} / ${steps.length}`; }
-function initCanvas() { document.getElementById('viz-canvas').innerHTML = ''; }
-
-function logType(t) {
-  if (!t) return '';
-  if (t.includes('done')) return 'success';
-  if (t.includes('scan')||t.includes('freq')||t.includes('init')) return 'info';
-  if (t.includes('emit')||t.includes('encode')||t.includes('output')) return 'highlight';
-  if (t.includes('merge')||t.includes('sorted')||t.includes('extend')) return 'warn';
-  return '';
-}
-
-// ===== STEP DISPATCHER =====
-function buildSteps() {
-  const txt = getInput();
-  if (currentAlgo==='rle') buildRLE(txt);
-  else if (currentAlgo==='huffman') buildHuffman(txt);
-  else if (currentAlgo==='lzw') buildLZW(txt);
-  else if (currentAlgo==='bwt') buildBWT(txt);
-}
-function applyStep(idx, silent=false) {
-  const s = steps[idx]; if (!s) { updateCounter(); return; }
-  if (!silent) log(s.log||'', logType(s.type));
-  if (currentAlgo==='rle') applyRLE(s);
-  else if (currentAlgo==='huffman') applyHuffman(s);
-  else if (currentAlgo==='lzw') applyLZW(s);
-  else if (currentAlgo==='bwt') applyBWT(s);
-  updateCounter();
-}
-
-// ============================================================
-// RLE
-// ============================================================
-function buildRLE(txt) {
-  const descEl = document.createElement('div');
-  descEl.className = 'desc-panel';
-  descEl.innerHTML = `<p><strong>Algorithm:</strong> Scan left-to-right, count consecutive identical characters. When the character changes, emit (char, count). Count=1 emits just the char.</p>
-    <p><strong>Best case:</strong> AAAAAAA → A7 (massive savings). <strong>Worst case:</strong> ABCDEF → A1B1C1... (expansion).</p>
-    <div class="complexity-row">
-      <span class="complexity-badge">Time <span>O(n)</span></span>
-      <span class="complexity-badge">Space <span>O(n)</span></span>
-      <span class="complexity-badge">Type <span>Lossless</span></span>
-    </div>`;
-  document.getElementById('viz-canvas').appendChild(descEl);
-
-  const inputSec = document.createElement('div');
-  inputSec.innerHTML = '<div class="sec-hdr">Input characters</div>';
-  const charArr = document.createElement('div'); charArr.className='char-array'; charArr.id='rle-chars';
-  for (let i=0;i<txt.length;i++) {
-    const box=document.createElement('div'); box.className='char-box'; box.id=`rle-c-${i}`;
-    const idx=document.createElement('div'); idx.className='char-idx'; idx.textContent=i;
-    box.appendChild(idx); box.appendChild(document.createTextNode(txt[i])); charArr.appendChild(box);
-  }
-  inputSec.appendChild(charArr);
-  document.getElementById('viz-canvas').appendChild(inputSec);
-
-  const outSec = document.createElement('div');
-  outSec.innerHTML = '<div class="sec-hdr">Compressed output</div>';
-  const strip = document.createElement('div'); strip.className='token-strip'; strip.id='rle-tokens';
-  outSec.appendChild(strip);
-  document.getElementById('viz-canvas').appendChild(outSec);
-
-  steps = [];
-  let i=0;
-  while (i<txt.length) {
-    let j=i; while (j<txt.length && txt[j]===txt[i]) j++;
-    const g={char:txt[i],count:j-i,start:i,end:j-1,gi:steps.filter(s=>s.type==='rle-emit').length};
-    for (let k=i;k<j;k++) steps.push({type:'rle-scan',pos:k,gi:g.gi,log:`Scanning '${txt[k]}' at pos ${k}`});
-    const tok=g.count===1?g.char:`${g.char}${g.count}`;
-    steps.push({type:'rle-emit',char:g.char,count:g.count,start:g.start,end:g.end,gi:g.gi,tok,log:`Emit "${tok}" (run of ${g.count})`});
-    i=j;
-  }
-  let compLen=0; steps.filter(s=>s.type==='rle-emit').forEach(s=>{compLen+=s.tok.length;});
-  steps.push({type:'rle-done',origLen:txt.length,compLen,log:`Done! ${txt.length} → ${compLen} chars`});
-  updateCounter();
-}
-
-function applyRLE(s) {
-  if (s.type==='rle-scan') {
-    document.querySelectorAll('[id^="rle-c-"]').forEach(b=>b.classList.remove('active'));
-    document.getElementById(`rle-c-${s.pos}`)?.classList.add('active');
-  } else if (s.type==='rle-emit') {
-    const col=COLORS[s.gi%COLORS.length];
-    for (let k=s.start;k<=s.end;k++) { const b=document.getElementById(`rle-c-${k}`); if(b){b.classList.remove('active');b.classList.add(col);} }
-    const strip=document.getElementById('rle-tokens'); if(!strip) return;
-    const tok=document.createElement('div'); tok.className='token';
-    tok.innerHTML=`<span class="t-char">${s.char}</span>`+(s.count>1?`<span class="t-sep">×</span><span class="t-cnt">${s.count}</span>`:'');
-    strip.appendChild(tok);
-  } else if (s.type==='rle-done') { setMetrics(s.origLen,s.compLen,'chars'); }
-}
-
-// ============================================================
-// HUFFMAN
-// ============================================================
-let huffRoot = null;
-function buildHuffman(txt) {
-  const descEl = document.createElement('div');
-  descEl.className = 'desc-panel';
-  descEl.innerHTML = `<p><strong>Algorithm:</strong> Count frequencies → build min-heap → repeatedly merge two lowest-frequency nodes → DFS to assign codes (left=0, right=1).</p>
-    <p><strong>Key property:</strong> Prefix-free codes — no code is a prefix of another, allowing unambiguous decoding without separators.</p>
-    <div class="complexity-row">
-      <span class="complexity-badge">Time <span>O(n log n)</span></span>
-      <span class="complexity-badge">Space <span>O(n)</span></span>
-      <span class="complexity-badge">Type <span>Lossless · Optimal prefix-free</span></span>
-    </div>`;
-  document.getElementById('viz-canvas').appendChild(descEl);
-
-  const freqSec = document.createElement('div');
-  freqSec.innerHTML = '<div class="sec-hdr">Character frequencies</div>';
-  const freqBars = document.createElement('div'); freqBars.className='prob-bars'; freqBars.id='huff-freq';
-  freqSec.appendChild(freqBars);
-  document.getElementById('viz-canvas').appendChild(freqSec);
-
-  const treeSec = document.createElement('div');
-  treeSec.innerHTML = '<div class="sec-hdr">Huffman tree</div>';
-  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.id='huffman-tree-svg'; svg.setAttribute('viewBox','0 0 760 280');
-  treeSec.appendChild(svg);
-  document.getElementById('viz-canvas').appendChild(treeSec);
-
-  const codeSec = document.createElement('div');
-  codeSec.innerHTML = '<div class="sec-hdr">Huffman codes</div>';
-  const tw = document.createElement('div');
-  tw.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden';
-  tw.innerHTML=`<table class="code-table"><thead><tr><th>Char</th><th>Freq</th><th>Code</th><th>Bits</th></tr></thead><tbody id="huff-tbody"></tbody></table>`;
-  codeSec.appendChild(tw);
-  const bitHdr = document.createElement('div'); bitHdr.innerHTML='<div class="sec-hdr" style="margin-top:12px">Encoded bit stream</div>';
-  const bitStrip = document.createElement('div'); bitStrip.className='output-strip'; bitStrip.id='huff-bits';
-  codeSec.appendChild(bitHdr); codeSec.appendChild(bitStrip);
-  document.getElementById('viz-canvas').appendChild(codeSec);
-
-  const freq={};
-  for (const c of txt) freq[c]=(freq[c]||0)+1;
-  const maxFreq=Math.max(...Object.values(freq));
-  const chars=Object.keys(freq);
-
-  setTimeout(()=>{
-    const fb=document.getElementById('huff-freq'); if(!fb) return;
-    chars.sort((a,b)=>freq[b]-freq[a]).forEach(c=>{
-      const row=document.createElement('div'); row.className='prob-row';
-      row.innerHTML=`<span class="prob-label">${c}</span>
-        <div class="prob-bar-wrap"><div class="prob-bar" style="width:${freq[c]/maxFreq*100}%"></div></div>
-        <span class="prob-val">${freq[c]} / ${txt.length}</span>`;
-      fb.appendChild(row);
-    });
-  }, 10);
-
-  // Build tree
-  let nodes=chars.map(c=>({char:c,freq:freq[c],left:null,right:null,id:c}));
-  nodes.sort((a,b)=>a.freq-b.freq);
-  let nid=100;
-  while (nodes.length>1) {
-    const a=nodes.shift(),b=nodes.shift();
-    const p={char:'*',freq:a.freq+b.freq,left:a,right:b,id:nid++};
-    nodes.push(p); nodes.sort((a,b)=>a.freq-b.freq);
-  }
-  huffRoot=nodes[0];
-
-  const codes={};
-  function gen(n,code){if(!n)return;if(!n.left&&!n.right){codes[n.char]=code||'0';return;}gen(n.left,code+'0');gen(n.right,code+'1');}
-  gen(huffRoot,'');
-
-  const origBits=txt.length*8;
-  const compBits=txt.split('').reduce((s,c)=>s+codes[c].length,0);
-
-  steps=[];
-  steps.push({type:'huff-freq',log:'Computed character frequencies'});
-  steps.push({type:'huff-tree',codes,freq,log:'Built Huffman tree and assigned prefix-free codes'});
-  for (let i=0;i<txt.length;i++) steps.push({type:'huff-encode',char:txt[i],code:codes[txt[i]],log:`Encode '${txt[i]}' → ${codes[txt[i]]}`});
-  steps.push({type:'huff-done',origBits,compBits,log:`Done! ${origBits} bits → ${compBits} bits`});
-  updateCounter();
-}
-
-function applyHuffman(s) {
-  if (s.type==='huff-tree') {
-    drawHuffTree(huffRoot);
-    const tbody=document.getElementById('huff-tbody'); if(!tbody) return;
-    Object.entries(s.codes).sort((a,b)=>b[1].length-a[1].length).forEach(([c,code])=>{
-      const tr=document.createElement('tr');
-      const bits=code.split('').map(b=>`<span class="${b==='0'?'bit-0':'bit-1'}">${b}</span>`).join('');
-      tr.innerHTML=`<td style="color:var(--blue);font-weight:600">${c}</td><td>${s.freq[c]}</td><td>${bits}</td><td>${code.length} bits</td>`;
-      tbody.appendChild(tr);
-    });
-  } else if (s.type==='huff-encode') {
-    const strip=document.getElementById('huff-bits'); if(!strip) return;
-    s.code.split('').forEach(b=>{
-      const span=document.createElement('span');
-      span.className='out-code'+(b==='1'?' new':'');
-      span.style.color=b==='0'?'var(--blue)':'var(--purple)';
-      span.textContent=b; strip.appendChild(span);
-    });
-    const sep=document.createElement('span');
-    sep.style.cssText='color:var(--border2);font-size:10px;align-self:center;padding:0 2px';
-    sep.textContent='|'; strip.appendChild(sep);
-  } else if (s.type==='huff-done') { setMetrics(s.origBits,s.compBits,'bits'); }
-}
-
-function drawHuffTree(root) {
-  const svg=document.getElementById('huffman-tree-svg'); if(!svg) return;
-  svg.innerHTML='';
-  const pos={};
-  let leafX=[30];
-  function assign(n,d){
-    if(!n)return;
-    if(!n.left&&!n.right){pos[n.id]={x:leafX[0],y:d*65+30};leafX[0]+=80;return;}
-    assign(n.left,d+1); assign(n.right,d+1);
-    const l=pos[n.left.id],r=pos[n.right.id];
-    if(l&&r) pos[n.id]={x:(l.x+r.x)/2,y:d*65+30};
-  }
-  assign(root,0);
-  const maxY=Math.max(...Object.values(pos).map(p=>p.y));
-  const maxX=Math.max(...Object.values(pos).map(p=>p.x));
-  svg.setAttribute('viewBox',`0 0 ${maxX+50} ${maxY+50}`);
-  svg.style.height=(maxY+50)+'px';
-
-  function drawEdges(n){
-    if(!n)return;
-    const p=pos[n.id];
-    [['left','0','#388bfd'],['right','1','#bc8cff']].forEach(([side,lbl,col])=>{
-      if(!n[side])return;
-      const cp=pos[n[side].id]; if(!p||!cp)return;
-      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-      line.setAttribute('x1',p.x);line.setAttribute('y1',p.y+16);line.setAttribute('x2',cp.x);line.setAttribute('y2',cp.y-16);
-      line.style.cssText='stroke:#484f58;stroke-width:1.5'; svg.appendChild(line);
-      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x',(p.x+cp.x)/2+(side==='left'?-10:6));t.setAttribute('y',(p.y+cp.y)/2);
-      t.style.cssText=`fill:${col};font-size:12px;font-family:monospace;font-weight:700`;
-      t.textContent=lbl; svg.appendChild(t);
-      drawEdges(n[side]);
-    });
-  }
-  function drawNodes(n){
-    if(!n)return;
-    const p=pos[n.id]; if(!p)return;
-    const isLeaf=!n.left&&!n.right;
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',16);
-    c.style.cssText=isLeaf?'fill:rgba(56,139,253,0.15);stroke:#388bfd;stroke-width:1.5':'fill:rgba(33,38,45,0.9);stroke:#484f58;stroke-width:1.5';
-    svg.appendChild(c);
-    const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
-    t1.setAttribute('x',p.x);t1.setAttribute('y',isLeaf?p.y-2:p.y+4);t1.setAttribute('text-anchor','middle');
-    t1.style.cssText=`fill:${isLeaf?'#388bfd':'#e6edf3'};font-size:12px;font-weight:600;font-family:monospace`;
-    t1.textContent=isLeaf?n.char:n.freq; svg.appendChild(t1);
-    if(isLeaf){
-      const t2=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t2.setAttribute('x',p.x);t2.setAttribute('y',p.y+12);t2.setAttribute('text-anchor','middle');
-      t2.style.cssText='fill:#8b949e;font-size:9px;font-family:monospace';
-      t2.textContent=n.freq; svg.appendChild(t2);
+  const rCtx = document.getElementById('chart-ratio').getContext('2d');
+  chartRatio = new Chart(rCtx, {
+    type: 'bar',
+    data: {
+      labels: ['CAGE (O(N log N))', 'BioCompress (Greedy)', 'GenCompress (DP)', 'Flat 2-bit Baseline'],
+      datasets: [{
+        data: [0, 0, 0, 2.0],
+        backgroundColor: ['rgba(0,212,170,0.2)', 'rgba(245,158,11,0.2)', 'rgba(167,139,250,0.2)', 'rgba(74,90,112,0.15)'],
+        borderColor: ['#00d4aa', '#f59e0b', '#a78bfa', '#4a5a70'],
+        borderWidth: 2, borderRadius: 10
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.raw.toFixed(3) + ' bpb' } } },
+      scales: {
+        y: { beginAtZero: true, max: 2.3,
+          ticks: { callback: v => v.toFixed(1) + ' bpb' },
+          title: { display: true, text: 'Bits per Base (lower = better)' } },
+        x: { grid: { display: false } }
+      }
     }
-    drawNodes(n.left); drawNodes(n.right);
-  }
-  drawEdges(root); drawNodes(root);
+  });
+
+  const cCtx = document.getElementById('chart-complexity').getContext('2d');
+  chartComplexity = new Chart(cCtx, {
+    type: 'line',
+    data: {
+      labels: [50, 100, 200, 400, 800, 1200],
+      datasets: [
+        { label: 'CAGE – O(N log N)', data: [0.05, 0.12, 0.27, 0.60, 1.30, 2.00],
+          borderColor: '#00d4aa', backgroundColor: 'rgba(0,212,170,0.06)', tension: 0.4, fill: true, pointRadius: 4 },
+        { label: 'BioCompress – O(N²)', data: [0.08, 0.30, 1.10, 4.50, 18, 42],
+          borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.04)', tension: 0.4, pointRadius: 4 },
+        { label: 'GenCompress – O(N²) matrix', data: [0.6, 2.4, 9.8, 40, 160, 380],
+          borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.04)', tension: 0.4, pointRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        y: { title: { display: true, text: 'Execution Time (ms)' } },
+        x: { title: { display: true, text: 'Sequence Length (N)' }, grid: { display: false } }
+      }
+    }
+  });
 }
 
-// ============================================================
-// LZW
-// ============================================================
-function buildLZW(txt) {
-  const descEl = document.createElement('div');
-  descEl.className = 'desc-panel';
-  descEl.innerHTML = `<p><strong>Algorithm:</strong> Initialize dictionary with all ASCII chars. Scan input: find longest match, output its code, add (match + next char) to dictionary, advance.</p>
-    <p><strong>Key insight:</strong> The decoder rebuilds the same dictionary during decompression — no need to transmit it. Handles the "special case" when the decoder hasn't yet seen a code.</p>
-    <div class="complexity-row">
-      <span class="complexity-badge">Time <span>O(n)</span></span>
-      <span class="complexity-badge">Space <span>O(dict)</span></span>
-      <span class="complexity-badge">Type <span>Lossless</span></span>
-    </div>`;
-  document.getElementById('viz-canvas').appendChild(descEl);
-
-  const inputSec = document.createElement('div');
-  inputSec.innerHTML = '<div class="sec-hdr">Input (scanning)</div>';
-  const charArr = document.createElement('div'); charArr.className='char-array'; charArr.id='lzw-chars';
-  for (let i=0;i<txt.length;i++) {
-    const box=document.createElement('div'); box.className='char-box'; box.id=`lzw-c-${i}`;
-    const idx=document.createElement('div'); idx.className='char-idx'; idx.textContent=i;
-    box.appendChild(idx); box.appendChild(document.createTextNode(txt[i])); charArr.appendChild(box);
+// ═══════════════════════════════════════
+// DNA UTILITIES
+// ═══════════════════════════════════════
+function rcSeq(seq) {
+  const c = { A:'T', T:'A', C:'G', G:'C', N:'N' };
+  return seq.split('').reverse().map(b => c[b] || b).join('');
+}
+function canonical(kmer) {
+  const r = rcSeq(kmer);
+  return kmer <= r ? kmer : r;
+}
+function fnv1a(str, seed) {
+  let h = (seed ^ 2166136261) >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
   }
-  inputSec.appendChild(charArr);
-  document.getElementById('viz-canvas').appendChild(inputSec);
+  return h;
+}
+function gcContent(seq) {
+  const gc = seq.split('').filter(b => b === 'G' || b === 'C').length;
+  return ((gc / seq.length) * 100).toFixed(1);
+}
+function baseColor(b) {
+  if (b === 'A') return 'base-A';
+  if (b === 'T') return 'base-T';
+  if (b === 'C') return 'base-C';
+  if (b === 'G') return 'base-G';
+  return 'base-N';
+}
+function renderBases(seq, hiRange) {
+  return seq.split('').map((b, i) => {
+    const hi = hiRange && i >= hiRange[0] && i < hiRange[1];
+    return `<span class="base ${baseColor(b)}${hi ? ' chunk-hi' : ''}">${b}</span>`;
+  }).join('');
+}
 
-  const outSec = document.createElement('div');
-  outSec.innerHTML = '<div class="sec-hdr">Output codes</div>';
-  const strip = document.createElement('div'); strip.className='output-strip'; strip.id='lzw-codes';
-  outSec.appendChild(strip);
-  document.getElementById('viz-canvas').appendChild(outSec);
+// ═══════════════════════════════════════
+// EDIT DISTANCE
+// ═══════════════════════════════════════
+function editOps(template, target) {
+  const m = template.length, n = target.length;
+  const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
+    dp[i][j] = template[i-1] === target[j-1]
+      ? dp[i-1][j-1]
+      : 1 + Math.min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1]);
+  }
+  const ops = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && template[i-1] === target[j-1])
+      { ops.unshift({ t:'m', v:target[j-1], p:i-1 }); i--; j--; }
+    else if (i > 0 && j > 0 && dp[i][j] === dp[i-1][j-1]+1)
+      { ops.unshift({ t:'s', v:target[j-1], old:template[i-1], p:i-1 }); i--; j--; }
+    else if (i > 0 && (j === 0 || dp[i][j] === dp[i-1][j]+1))
+      { ops.unshift({ t:'d', old:template[i-1], p:i-1 }); i--; }
+    else
+      { ops.unshift({ t:'i', v:target[j-1], p:i }); j--; }
+  }
+  return ops;
+}
 
-  const dictSec = document.createElement('div');
-  dictSec.innerHTML = '<div class="sec-hdr">LZW Dictionary (new entries)</div>';
-  const dw = document.createElement('div');
-  dw.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;max-height:200px;overflow-y:auto';
-  dw.innerHTML=`<table class="lzw-table"><thead><tr><th>Code</th><th>Pattern</th><th>Step</th></tr></thead><tbody id="lzw-dict-body"></tbody></table>`;
-  dictSec.appendChild(dw);
+// ═══════════════════════════════════════
+// CAGE ALGORITHM
+// ═══════════════════════════════════════
+function runCAGE(dna, L, k, h, b) {
+  const t0 = performance.now();
+  const step = Math.max(1, Math.floor(L / 2));
+  const chunks = [];
+  for (let i = 0; i + L <= dna.length; i += step)
+    chunks.push({ idx: chunks.length, start: i, end: i + L, seq: dna.substring(i, i + L), sketch: null, bucketKeys: [] });
 
-  const iterSec = document.createElement('div');
-  iterSec.innerHTML = '<div class="sec-hdr">Step log</div>';
-  const iw = document.createElement('div');
-  iw.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;max-height:200px;overflow-y:auto';
-  iw.innerHTML=`<table class="lzw-table"><thead><tr><th>Step</th><th>Current</th><th>Next</th><th>Output</th><th>New entry</th></tr></thead><tbody id="lzw-iter-body"></tbody></table>`;
-  iterSec.appendChild(iw);
+  // If no full chunks, do partial last chunk
+  if (chunks.length === 0 && dna.length > 0)
+    chunks.push({ idx: 0, start: 0, end: dna.length, seq: dna, sketch: null, bucketKeys: [] });
 
-  document.getElementById('viz-canvas').appendChild(dictSec);
-  document.getElementById('viz-canvas').appendChild(iterSec);
+  const r = Math.max(1, Math.floor(h / b));
 
-  const dict={};
-  for (let i=0;i<256;i++) dict[String.fromCharCode(i)]=i;
-  let nextCode=256,curr=txt[0],pos=1,stepNum=0;
-  steps=[];
-  while (pos<=txt.length) {
-    const next=pos<txt.length?txt[pos]:null;
-    if(next&&dict[curr+next]!==undefined){
-      steps.push({type:'lzw-extend',curr,next,pos,log:`'${curr}'+'${next}'='${curr+next}' found in dict, extend`});
-      curr+=next; pos++;
+  // MinHash sketch
+  chunks.forEach(ch => {
+    const sketch = new Array(h).fill(0xFFFFFFFF);
+    for (let i = 0; i + k <= ch.seq.length; i++) {
+      const can = canonical(ch.seq.substring(i, i + k));
+      for (let hi = 0; hi < h; hi++) {
+        const v = fnv1a(can, SEEDS[hi % SEEDS.length]);
+        if (v < sketch[hi]) sketch[hi] = v;
+      }
+    }
+    ch.sketch = sketch;
+  });
+
+  // LSH banding
+  const lshBands = Array.from({ length: b }, () => ({}));
+  chunks.forEach(ch => {
+    for (let band = 0; band < b; band++) {
+      const sub = ch.sketch.slice(band * r, (band + 1) * r).join(',');
+      const key = fnv1a(sub, 99991);
+      if (!lshBands[band][key]) lshBands[band][key] = [];
+      lshBands[band][key].push(ch.idx);
+      ch.bucketKeys.push(key);
+    }
+  });
+
+  // Grammar extraction
+  const compressed = new Array(chunks.length).fill(null);
+  const buckets = [];
+  for (let band = 0; band < b; band++) {
+    for (const [key, ids] of Object.entries(lshBands[band])) {
+      if (ids.length < 2) continue;
+      const tmplIdx = ids[0];
+      buckets.push({ band, key: parseInt(key), tmplIdx, tmplSeq: chunks[tmplIdx].seq, members: ids });
+      for (let mi = 1; mi < ids.length; mi++) {
+        const tgtIdx = ids[mi];
+        if (compressed[tgtIdx] !== null) continue;
+        const ops = editOps(chunks[tmplIdx].seq, chunks[tgtIdx].seq);
+        const edits = ops.filter(o => o.t !== 'm').length;
+        if (edits < L / 2) compressed[tgtIdx] = { tmplIdx, ops };
+      }
+    }
+  }
+
+  // Bit counting
+  const ptrBits = Math.max(1, Math.ceil(Math.log2(chunks.length + 1)));
+  let litBits = 0, editBits = 0;
+  chunks.forEach((ch, i) => {
+    const c = compressed[i];
+    if (!c) { litBits += ch.seq.length * 2; }
+    else {
+      editBits += ptrBits;
+      c.ops.filter(o => o.t !== 'm').forEach(() => {
+        editBits += Math.ceil(Math.log2(L + 1)) + 2 + 2;
+      });
+    }
+  });
+
+  return {
+    bpb: parseFloat(((litBits + editBits) / dna.length).toFixed(3)),
+    timeMs: performance.now() - t0,
+    chunks, buckets, compressed
+  };
+}
+
+// ═══════════════════════════════════════
+// GREEDY (BioCompress)
+// ═══════════════════════════════════════
+function runGreedy(dna) {
+  const t0 = performance.now();
+  const n = dna.length;
+  let bits = 0, i = 0;
+  const minLen = 6, win = 256;
+  while (i < n) {
+    let bestLen = 0;
+    const start = Math.max(0, i - win);
+    for (let j = start; j < i; j++) {
+      let len = 0;
+      while (i + len < n && j + len < i && dna[j + len] === dna[i + len]) len++;
+      if (len > bestLen) bestLen = len;
+    }
+    if (bestLen >= minLen) {
+      bits += Math.ceil(Math.log2(n + 1)) + Math.ceil(Math.log2(win)) + 1;
+      i += bestLen;
+    } else { bits += 3; i++; }
+  }
+  return { bpb: parseFloat((bits / n).toFixed(3)), timeMs: performance.now() - t0 };
+}
+
+// ═══════════════════════════════════════
+// DP (GenCompress)
+// ═══════════════════════════════════════
+function runDP(dna) {
+  const t0 = performance.now();
+  const n = dna.length;
+  let bits = 0, i = 0;
+  const minMatch = 8, winLen = 24, lookback = 100;
+  while (i < n) {
+    let bestLen = 0, bestEdits = null;
+    const start = Math.max(0, i - lookback);
+    for (let j = start; j < i - minMatch; j++) {
+      const tpl = dna.substring(j, Math.min(i, j + winLen * 2));
+      const tgt = dna.substring(i, i + winLen);
+      if (tgt.length < minMatch) break;
+      const ops = editOps(tpl, tgt);
+      const m = ops.filter(o => o.t === 'm').length;
+      if (m > bestLen) { bestLen = m; bestEdits = ops.filter(o => o.t !== 'm'); }
+    }
+    if (bestLen >= minMatch && bestEdits !== null) {
+      bits += Math.ceil(Math.log2(n + 1)) + Math.ceil(Math.log2(winLen + 1));
+      bestEdits.forEach(() => { bits += Math.ceil(Math.log2(winLen + 1)) + 4; });
+      i += bestLen;
+    } else { bits += 3; i++; }
+  }
+  return { bpb: parseFloat((bits / n).toFixed(3)), timeMs: performance.now() - t0 };
+}
+
+// ═══════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════
+function log(msg, type = '') {
+  const t = document.getElementById('terminal');
+  const d = document.createElement('div');
+  d.className = 'tline' + (type ? ' ' + type : '');
+  d.textContent = (type === 'ok' ? '✔ ' : type === 'warn' ? '⚠ ' : '➜ ') + msg;
+  t.appendChild(d);
+  t.scrollTop = t.scrollHeight;
+}
+function setP(p, v) {
+  document.getElementById('v-' + p).textContent = v;
+  if (p === 'L') pL = parseInt(v);
+  if (p === 'k') pk = parseInt(v);
+  if (p === 'h') ph = parseInt(v);
+  if (p === 'b') pb = parseInt(v);
+  triggerDebounce();
+}
+function updateSeqMeta(seq) {
+  document.getElementById('seq-len').textContent = seq.length + ' bp';
+  document.getElementById('seq-gc').textContent = seq.length > 0 ? 'GC: ' + gcContent(seq) + '%' : 'GC: —';
+}
+function loadPreset(key, btn) {
+  document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  activeDna = PRESETS[key];
+  document.getElementById('seq-box').value = activeDna;
+  updateSeqMeta(activeDna);
+  log('Preset loaded: ' + key + ' (' + activeDna.length + ' bp)');
+  runPipeline();
+}
+function handleFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    let txt = ev.target.result.trim();
+    if (txt.startsWith('>')) txt = txt.split('\n').filter(l => !l.startsWith('>')).join('');
+    txt = txt.replace(/[^ATCGatcgNn]/g, '').toUpperCase();
+    activeDna = txt;
+    document.getElementById('seq-box').value = activeDna;
+    updateSeqMeta(activeDna);
+    log('File loaded: ' + f.name + ' (' + activeDna.length + ' bp)', 'ok');
+    runPipeline();
+  };
+  reader.readAsText(f);
+}
+function setTab(id, btn) {
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('view-' + id).classList.add('active');
+  if (id === 'simulator') renderSim();
+  if (id === 'buckets') renderBuckets();
+}
+function triggerDebounce() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => runPipeline(), 600);
+}
+
+// ═══════════════════════════════════════
+// MAIN PIPELINE
+// ═══════════════════════════════════════
+function runPipeline() {
+  const raw = document.getElementById('seq-box').value;
+  const seq = raw.replace(/[^ATCGatcgNn]/g, '').toUpperCase();
+  if (!seq || seq.length < 4) {
+    log('Sequence too short (need ≥ 4 bases)', 'warn');
+    return;
+  }
+  activeDna = seq;
+  // Sync cleaned value back silently
+  if (document.getElementById('seq-box').value !== seq)
+    document.getElementById('seq-box').value = seq;
+  updateSeqMeta(seq);
+
+  log('Running CAGE (L=' + pL + ', k=' + pk + ', h=' + ph + ', b=' + pb + ')…');
+  const cageRes   = runCAGE(seq, pL, pk, ph, pb);
+  log('Running BioCompress (Greedy)…');
+  const greedyRes = runGreedy(seq);
+  log('Running GenCompress (DP)…');
+  const dpRes     = runDP(seq);
+
+  results = { cage: cageRes, greedy: greedyRes, dp: dpRes };
+
+  document.getElementById('stat-cage').textContent   = cageRes.bpb.toFixed(3);
+  document.getElementById('stat-greedy').textContent = greedyRes.bpb.toFixed(3);
+  document.getElementById('stat-dp').textContent     = dpRes.bpb.toFixed(3);
+  document.getElementById('stat-len').textContent    = seq.length;
+
+  if (chartRatio) {
+    chartRatio.data.datasets[0].data = [cageRes.bpb, greedyRes.bpb, dpRes.bpb, 2.0];
+    chartRatio.update();
+  }
+
+  log('CAGE:   ' + cageRes.bpb + ' bpb  (' + cageRes.timeMs.toFixed(1) + 'ms, ' + cageRes.buckets.length + ' buckets)', 'ok');
+  log('Greedy: ' + greedyRes.bpb + ' bpb  (' + greedyRes.timeMs.toFixed(1) + 'ms)', 'ok');
+  log('DP:     ' + dpRes.bpb + ' bpb  (' + dpRes.timeMs.toFixed(1) + 'ms)', 'ok');
+
+  // Refresh active tab
+  const activeView = document.querySelector('.view.active');
+  if (activeView) {
+    if (activeView.id === 'view-simulator') renderSim();
+    if (activeView.id === 'view-buckets') renderBuckets();
+  }
+}
+
+// ═══════════════════════════════════════
+// BENCHMARK
+// ═══════════════════════════════════════
+function doBenchmark() {
+  const overlay = document.getElementById('bench-overlay');
+  overlay.classList.add('on');
+  const sizes = [50, 100, 200, 400, 800, 1200];
+  const cT = [], gT = [], dT = [];
+  let si = 0;
+  function next() {
+    if (si >= sizes.length) {
+      overlay.classList.remove('on');
+      if (chartComplexity) {
+        chartComplexity.data.labels = sizes;
+        chartComplexity.data.datasets[0].data = cT;
+        chartComplexity.data.datasets[1].data = gT;
+        chartComplexity.data.datasets[2].data = dT;
+        chartComplexity.update();
+      }
+      log('Benchmark complete.', 'ok'); return;
+    }
+    const N = sizes[si];
+    document.getElementById('bench-msg').textContent = 'Profiling at N = ' + N + '…';
+    setTimeout(() => {
+      const base = activeDna.repeat(Math.ceil(N / Math.max(1, activeDna.length))).substring(0, N);
+      let tc = 0, tg = 0, td = 0;
+      for (let i = 0; i < 5; i++) tc += runCAGE(base, pL, pk, ph, pb).timeMs;
+      for (let i = 0; i < 5; i++) tg += runGreedy(base).timeMs;
+      for (let i = 0; i < 3; i++) td += runDP(base).timeMs;
+      cT.push(tc / 5); gT.push(tg / 5); dT.push(td / 3);
+      si++; next();
+    }, 60);
+  }
+  next();
+}
+
+// ═══════════════════════════════════════
+// STEP WALKTHROUGH - Beginner Friendly
+// ═══════════════════════════════════════
+
+function gotoStage(n) { simStage = n; renderSim(); }
+function stepSim(d) { simStage = Math.max(1, Math.min(4, simStage + d)); renderSim(); }
+
+function renderSim() {
+  // Update progress bar
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('wp-' + i);
+    el.classList.toggle('active', i === simStage);
+    el.classList.toggle('done', i < simStage);
+  }
+  document.getElementById('btn-prev').disabled = simStage === 1;
+  document.getElementById('btn-next').disabled = simStage === 4;
+  document.getElementById('stage-pill').textContent = 'Step ' + simStage + ' / 4';
+
+  const container = document.getElementById('stage-content');
+  container.innerHTML = '';
+
+  if (!results) {
+    container.innerHTML = `<div style="padding:32px 24px;">
+      <div class="callout callout-info">
+        ⚠️ <strong>No data yet.</strong> Please type a DNA sequence in the sidebar (or click a preset), then click <strong>⚡ Run All Algorithms</strong> to see the step-by-step walkthrough with your actual data.
+      </div></div>`;
+    return;
+  }
+
+  const dna = activeDna;
+  const chunks = results.cage.chunks;
+
+  // ─── STAGE 1: CHUNKING ───────────────────────────────────
+  if (simStage === 1) {
+    const step = Math.max(1, Math.floor(pL / 2));
+    container.innerHTML = `
+      <div class="stage-banner">
+        <div class="sb-label">Stage 01 — Chunking DNA</div>
+        <div class="sb-title">Breaking the long sequence into overlapping blocks</div>
+        <div class="sb-analogy">
+          <strong>Real-world analogy:</strong> Imagine reading a long book by cutting it into overlapping pages. Each "page" (chunk) shares half its content with the next, so nothing at the page boundary is missed. Here, we cut the ${dna.length}-base DNA string into overlapping <strong>blocks of L = ${pL} bases</strong>, sliding forward by <strong>L/2 = ${step} bases</strong> each time.
+        </div>
+      </div>
+      <div class="stage-body">
+        <div class="mini-steps">
+          <div class="mini-step">
+            <div class="mini-step-num">1</div>
+            <div class="mini-step-content">
+              <div class="mini-step-title">The full DNA input (${dna.length} bases)</div>
+              <div class="mini-step-desc">Each base is colour-coded: <span style="color:#86efac">A</span> = green, <span style="color:#fca5a5">T</span> = red, <span style="color:#93c5fd">C</span> = blue, <span style="color:#fde68a">G</span> = yellow</div>
+              <div class="vis-panel" style="margin-top:8px">
+                <div class="vis-title">🧬 Full Sequence</div>
+                <div class="dna-display">${renderBases(dna.substring(0, Math.min(dna.length, 120)))}</div>
+                ${dna.length > 120 ? `<div style="font-size:10px;color:var(--dim);margin-top:4px">…and ${dna.length - 120} more bases</div>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="mini-step">
+            <div class="mini-step-num">2</div>
+            <div class="mini-step-content">
+              <div class="mini-step-title">Sliding window creates ${chunks.length} overlapping chunks</div>
+              <div class="mini-step-desc">Each chunk starts ${step} positions after the previous. The overlap (shown below) ensures mutations at block edges are captured twice.</div>
+            </div>
+          </div>
+          <div class="mini-step">
+            <div class="mini-step-num">3</div>
+            <div class="mini-step-content">
+              <div class="mini-step-title">All generated chunks — click any to highlight it in the sequence above</div>
+              <div class="vis-panel" style="margin-top:8px">
+                <div class="vis-title">📦 ${chunks.length} Chunks (Block Size L = ${pL})</div>
+                <div class="chunk-list">${chunks.map((ch, i) => `
+                  <div class="chunk-block" id="cbk-${i}" onclick="highlightChunk(${i})">
+                    <div class="cb-head">
+                      <span class="cb-id">Chunk C_${ch.idx}</span>
+                      <span class="cb-pos">bases ${ch.start}–${ch.end-1}</span>
+                    </div>
+                    <div class="cb-seq">${ch.seq}</div>
+                  </div>`).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-cage">
+          ✅ <strong>Why overlapping?</strong> If blocks were non-overlapping, a mutation right at a block boundary would split between two blocks, making it undetectable. Overlapping blocks ensure every pattern is fully captured in at least one block.
+        </div>
+      </div>`;
+  }
+
+  // ─── STAGE 2: MINHASH ────────────────────────────────────
+  else if (simStage === 2) {
+    const ch = chunks[0];
+    if (!ch) { container.innerHTML = '<div style="padding:24px"><div class="placeholder">No chunks available — increase DNA length or reduce L.</div></div>'; return; }
+    const kmers = [];
+    for (let i = 0; i + pk <= ch.seq.length && i < 10; i++) {
+      const kmer = ch.seq.substring(i, i + pk);
+      const rv = rcSeq(kmer);
+      const can = canonical(kmer);
+      kmers.push({ kmer, rv, can, isRC: kmer > rv });
+    }
+    const sketchRows = ch.sketch.slice(0, Math.min(ph, 8));
+
+    container.innerHTML = `
+      <div class="stage-banner">
+        <div class="sb-label">Stage 02 — Canonical MinHash Sketching</div>
+        <div class="sb-title">Turning each chunk into a tiny "fingerprint"</div>
+        <div class="sb-analogy">
+          <strong>Real-world analogy:</strong> Imagine summarising a book by its 5 rarest words. Two books with the same rare words are probably similar. Here we extract short sub-strings (k-mers), and for each we pick the "canonical" version (forward vs. reverse complement — whichever comes first alphabetically). Then we take the <em>minimum</em> hash value across all k-mers for each hash function. The result is a fixed-size <strong>"sketch" vector</strong> representing the entire block.
+        </div>
+      </div>
+      <div class="stage-body">
+        <div class="mini-steps">
+          <div class="mini-step">
+            <div class="mini-step-num">1</div>
+            <div class="mini-step-content">
+              <div class="mini-step-title">Choose a block to inspect — showing Chunk C_0</div>
+              <div class="mini-step-desc">Sequence: <span style="font-family:var(--mono);color:var(--cage)">${ch.seq}</span></div>
+            </div>
+          </div>
+          <div class="mini-step">
+            <div class="mini-step-num">2</div>
+            <div class="mini-step-content">
+              <div class="mini-step-title">Extract every ${pk}-letter sub-string (k-mer) with its Reverse Complement</div>
+              <div class="mini-step-desc">The <strong>canonical k-mer</strong> is the lexicographically smaller of {k-mer, RC(k-mer)}. This makes it strand-agnostic — both DNA strands map to the same canonical value.</div>
+              <div class="vis-panel" style="margin-top:8px">
+                <div class="vis-title">🔬 k-mer Table (k = ${pk}, first ${kmers.length} shown)</div>
+                <table class="hash-table">
+                  <thead><tr><th>#</th><th>k-mer (forward)</th><th>RC (reverse complement)</th><th>Canonical (chosen)</th></tr></thead>
+                  <tbody>${kmers.map((km, i) => `<tr>
+                    <td style="color:var(--dim)">${i}</td>
+                    <td><div style="display:flex;gap:2px">${renderBases(km.kmer)}</div></td>
+                    <td><div style="display:flex;gap:2px">${renderBases(km.rv)}</div></td>
+                    <td style="color:var(--cage);font-weight:700"><div style="display:flex;gap:2px;align-items:center">${renderBases(km.can)}<span class="canon-badge">${km.isRC ? 'RC wins' : 'FWD wins'}</span></div></td>
+                  </tr>`).join('')}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="mini-step">
+            <div class="mini-step-num">3</div>
+            <div class="mini-step-content">
+              <div class="mini-step-title">Apply ${ph} different hash functions → keep the minimum for each</div>
+              <div class="mini-step-desc">Each hash function "ranks" all k-mers differently. We keep only the <strong>minimum hash value</strong> for each function. This is the MinHash sketch — a fixed-size vector of ${ph} numbers representing the entire chunk.</div>
+              <div class="vis-panel" style="margin-top:8px">
+                <div class="vis-title">🧮 MinHash Sketch Vector for C_0 (showing ${sketchRows.length} of ${ph} values)</div>
+                <div class="sketch-vec">
+                  ${sketchRows.map((v, i) => `<div class="sv-cell min-val" title="Hash function ${i}"><span style="font-size:8px;color:var(--dim)">h${i}=</span>${'0x'+v.toString(16).padStart(4,'0').substring(0,4)}</div>`).join('')}
+                  ${ph > 8 ? `<div style="font-size:10px;color:var(--dim);display:flex;align-items:center;padding:0 6px">…+${ph-8} more</div>` : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-cage">
+          ✅ <strong>Key insight:</strong> Two chunks with many common k-mers (even with 1–2 mutations) will share many of their minimum hash values, making their sketch vectors <em>nearly identical</em>. This is the basis for finding approximate matches.
+        </div>
+      </div>`;
+  }
+
+  // ─── STAGE 3: LSH BANDING ────────────────────────────────
+  else if (simStage === 3) {
+    const ch0 = chunks[0];
+    const r = Math.max(1, Math.floor(ph / pb));
+    const hasBuckets = results.cage.buckets.length > 0;
+    const topBucket = results.cage.buckets[0];
+
+    let bandsHtml = '';
+    for (let band = 0; band < pb; band++) {
+      const sub = ch0.sketch.slice(band * r, (band + 1) * r);
+      const key = ch0.bucketKeys[band];
+      // Find if any collision in this band
+      const bkt = results.cage.buckets.find(b => b.band === band && b.key === key);
+      const hasMatch = !!bkt;
+      bandsHtml += `
+        <div class="band-row-vis${hasMatch ? ' band-match' : ''}">
+          <div class="bv-header">
+            <span class="bv-label">Band ${band}  (rows ${band*r}–${Math.min((band+1)*r-1, ph-1)})${hasMatch ? ' 🎯 COLLISION!' : ''}</span>
+            <span class="bv-key">Bucket Key: 0x${key.toString(16).substring(0,8)}</span>
+          </div>
+          <div class="bv-cells">
+            ${sub.map(v => `<div class="bvc">0x${v.toString(16).substring(0,4)}</div>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    container.innerHTML = `
+      <div class="stage-banner">
+        <div class="sb-label">Stage 03 — Locality Sensitive Hashing (LSH)</div>
+        <div class="sb-title">Finding similar chunks in O(1) without comparing every pair</div>
+        <div class="sb-analogy">
+          <strong>Real-world analogy:</strong> Instead of checking every student's exam paper against every other to find similar ones, you split each paper into 3 sections and check: do any two papers have the exact same section? If yes → they're probably similar overall. This replaces O(N²) pairwise comparison with O(1) bucket lookup.
+          <br><br>
+          We split the ${ph}-value sketch into <strong>b = ${pb} bands of r = ${r} values each</strong>. Each band's values are hashed to a bucket key. Two chunks that share even one band key go into the same bucket.
+        </div>
+      </div>
+      <div class="stage-body">
+        <div class="mini-steps">
+          <div class="mini-step">
+            <div class="mini-step-num">1</div>
+            <div class="mini-step-content">
+              <div class="mini-step-title">Divide Chunk C_0's sketch into ${pb} bands</div>
+              <div class="mini-step-desc">Each band is hashed to a short bucket key. A 🎯 means another chunk landed in the same bucket!</div>
+              <div class="vis-panel" style="margin-top:8px">
+                <div class="vis-title">🪣 Band Partitioning for C_0</div>
+                <div class="band-visual">${bandsHtml}</div>
+              </div>
+            </div>
+          </div>
+          <div class="mini-step">
+            <div class="mini-step-num">2</div>
+            <div class="mini-step-content">
+              <div class="mini-step-title">Buckets with collisions = approximate matches found!</div>
+              <div class="mini-step-desc">${hasBuckets ? `Found <strong style="color:var(--cage)">${results.cage.buckets.length} bucket(s)</strong> with 2+ colliding chunks. These will be compressed together using grammar rules.` : `No collisions found with current parameters. Try a more repetitive sequence or reduce L / b.`}</div>
+              ${hasBuckets ? `
+              <div class="vis-panel" style="margin-top:8px">
+                <div class="vis-title">🎯 Collision Buckets Found</div>
+                <div class="bucket-vis">
+                  ${results.cage.buckets.slice(0,4).map(bkt => `
+                  <div class="bkt-group">
+                    <div class="bkt-hdr">
+                      <span class="bkt-name">Band ${bkt.band} | Bucket 0x${bkt.key.toString(16).substring(0,8)}</span>
+                      <span class="bkt-cnt">${bkt.members.length} chunks</span>
+                    </div>
+                    <div class="bkt-body">
+                      <div style="font-size:11.5px;color:var(--muted)">Colliding chunks: 
+                        ${bkt.members.map(m => `<strong style="color:var(--text)">C_${m}</strong>`).join(', ')}
+                      </div>
+                      <div style="font-size:10.5px;color:var(--dim);margin-top:4px">Template = C_${bkt.tmplIdx} | Sequence: <span style="font-family:var(--mono);color:var(--muted)">${bkt.tmplSeq.substring(0,30)}${bkt.tmplSeq.length>30?'…':''}</span></div>
+                    </div>
+                  </div>`).join('')}
+                  ${results.cage.buckets.length > 4 ? `<div style="font-size:11px;color:var(--dim)">…and ${results.cage.buckets.length - 4} more buckets</div>` : ''}
+                </div>
+              </div>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-info">
+          💡 <strong>Why is this O(N log N)?</strong> Hashing into a bucket takes O(1). We do this for each band (b = ${pb} times) for each chunk (${chunks.length} chunks). Total = O(N/L × b) = O(N). Sorting/indexing the buckets adds O(N log N). Compare this to O(N²) pairwise comparison — for 1000 chunks that's 1000 vs 1,000,000 operations!
+        </div>
+      </div>`;
+  }
+
+  // ─── STAGE 4: GRAMMAR ────────────────────────────────────
+  else if (simStage === 4) {
+    const hasBuckets = results.cage.buckets.length > 0;
+    let rulesHtml = '';
+    let refCount = 0, litCount = 0;
+    chunks.forEach((ch, i) => {
+      if (results.cage.compressed[i]) refCount++;
+      else litCount++;
+    });
+
+    if (hasBuckets) {
+      results.cage.buckets.slice(0, 3).forEach((bkt, bi) => {
+        const tmpl = chunks[bkt.tmplIdx];
+        let membersHtml = '';
+        bkt.members.slice(0, 4).forEach(mIdx => {
+          const cmp = results.cage.compressed[mIdx];
+          if (mIdx === bkt.tmplIdx || !cmp) return;
+          const edits = cmp.ops.filter(o => o.t !== 'm');
+          const script = edits.map(op => {
+            if (op.t === 's') return `sub(${op.p},'${op.v}')`;
+            if (op.t === 'i') return `ins(${op.p},'${op.v}')`;
+            return `del(${op.p})`;
+          }).join(', ');
+          let diffBases = '';
+          cmp.ops.forEach(op => {
+            if      (op.t === 'm') diffBases += `<span class="db m">${op.v}</span>`;
+            else if (op.t === 's') diffBases += `<span class="db s" title="Change ${op.old}→${op.v}">${op.v}</span>`;
+            else if (op.t === 'i') diffBases += `<span class="db i" title="Inserted ${op.v}">${op.v}</span>`;
+            else if (op.t === 'd') diffBases += `<span class="db d" title="Deleted ${op.old}">-</span>`;
+          });
+          membersHtml += `
+            <div style="margin-bottom:14px;border-left:3px solid var(--border);padding-left:12px">
+              <div class="diff-view" style="margin-bottom:8px">
+                <div class="diff-row">
+                  <span class="diff-label tmpl">Template C_${bkt.tmplIdx}</span>
+                  <div class="diff-bases">${tmpl.seq.split('').map(b=>`<span class="db m">${b}</span>`).join('')}</div>
+                </div>
+                <div class="diff-row">
+                  <span class="diff-label">Chunk C_${mIdx}</span>
+                  <div class="diff-bases">${diffBases}</div>
+                </div>
+              </div>
+              <div class="rule-box">C_${mIdx} → C_${bkt.tmplIdx} + [${script || '<em style="color:var(--dim)">no edits — identical!</em>'}]</div>
+              <div style="font-size:10.5px;color:var(--dim);margin-top:4px">
+                Saved ${Math.max(0, tmpl.seq.length * 2 - (edits.length * 8))} bits vs. storing literally
+              </div>
+            </div>`;
+        });
+
+        rulesHtml += `
+          <div class="mini-step">
+            <div class="mini-step-num">${bi + 1}</div>
+            <div class="mini-step-content">
+              <div class="mini-step-title">Bucket ${bi+1}: C_${bkt.tmplIdx} is the Template</div>
+              <div class="mini-step-desc">Grey = matching bases (not stored), <span style="color:#fca5a5">Red = substitution</span>, <span style="color:#86efac">Green = insertion</span>, <span style="color:#93c5fd">Blue = deletion</span></div>
+              ${membersHtml || '<div style="font-size:11px;color:var(--dim);margin-top:8px">All members are the template itself in this bucket.</div>'}
+            </div>
+          </div>`;
+      });
+    }
+
+    container.innerHTML = `
+      <div class="stage-banner">
+        <div class="sb-label">Stage 04 — Parameterized Grammar Extraction</div>
+        <div class="sb-title">Compressing similar chunks using a "Template + Mutations" rule</div>
+        <div class="sb-analogy">
+          <strong>Real-world analogy:</strong> Instead of printing two nearly identical essays, you print one (the template) and for the other you just write: "same as Essay A, but change word 5 from 'cat' to 'bat'". That's exactly what a grammar rule does — it stores the template once, then lists only the differences (substitutions, insertions, deletions) for each similar chunk.
+          <br><br>
+          Result: <strong style="color:var(--cage)">${refCount} chunks compressed by reference</strong>, ${litCount} stored literally. Total: <strong style="color:var(--cage)">${results.cage.bpb} bpb</strong> vs. 2.0 bpb flat encoding.
+        </div>
+      </div>
+      <div class="stage-body">
+        <div class="mini-steps">
+          ${rulesHtml || '<div class="mini-step"><div class="mini-step-num">!</div><div class="mini-step-content"><div class="mini-step-title">No grammar rules generated</div><div class="mini-step-desc">No bucket collisions found — try a more repetitive sequence like "Synthetic" or "RC Repeats".</div></div></div>'}
+        </div>
+        <div class="callout callout-cage">
+          ✅ <strong>Storage breakdown:</strong>
+          Each template chunk costs <strong>2 × L = ${2*pL} bits</strong> (2 bits per base).
+          Each referenced chunk costs only a <strong>pointer (${Math.ceil(Math.log2(chunks.length+1))} bits) + edit script</strong> — typically much less than storing the full block.
+          The more repetitive the DNA (like genomes with tandem repeats), the bigger the savings.
+        </div>
+      </div>`;
+  }
+}
+
+// Highlight chunk in stage 1
+function highlightChunk(idx) {
+  document.querySelectorAll('.chunk-block').forEach(b => b.classList.remove('sel'));
+  const el = document.getElementById('cbk-' + idx);
+  if (el) el.classList.add('sel');
+}
+
+// ═══════════════════════════════════════
+// LSH BUCKET EXPLORER
+// ═══════════════════════════════════════
+function renderBuckets() {
+  const list = document.getElementById('bkt-list');
+  const detail = document.getElementById('bkt-detail');
+
+  if (!results || !results.cage.buckets.length) {
+    list.innerHTML = '<div class="placeholder">Run the pipeline to generate buckets. Tip: use a repetitive preset like "Synthetic".</div>';
+    detail.innerHTML = '<div style="font-size:15px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:10px">LSH Bucket Detail</div><div class="placeholder">No buckets yet.</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  results.cage.buckets.forEach((bkt, idx) => {
+    const item = document.createElement('div');
+    item.className = 'bkt-item' + (idx === 0 ? ' active' : '');
+    item.onclick = () => {
+      document.querySelectorAll('.bkt-item').forEach(b => b.classList.remove('active'));
+      item.classList.add('active');
+      showBucket(bkt);
+    };
+    item.innerHTML = `
+      <div class="bi-meta"><span>Band ${bkt.band}</span><span class="bi-badge">${bkt.members.length} hits</span></div>
+      <div class="bi-hash">0x${bkt.key.toString(16).substring(0, 10)}</div>`;
+    list.appendChild(item);
+  });
+
+  showBucket(results.cage.buckets[0]);
+}
+
+function showBucket(bkt) {
+  const detail = document.getElementById('bkt-detail');
+  const chunks = results.cage.chunks;
+
+  let alnHtml = '';
+  // Template row
+  let tmplBases = bkt.tmplSeq.split('').map(b => `<span class="db m">${b}</span>`).join('');
+  alnHtml += `<div class="aln-row">
+    <span class="aln-label tpl">Template C_${bkt.tmplIdx}</span>
+    <div style="display:flex;gap:2px">${tmplBases}</div></div>`;
+
+  // Member rows
+  bkt.members.forEach(mIdx => {
+    if (mIdx === bkt.tmplIdx) return;
+    const cmp = results.cage.compressed[mIdx];
+    let bases = '';
+    if (cmp && cmp.ops) {
+      cmp.ops.forEach(op => {
+        if      (op.t === 'm') bases += `<span class="db m">${op.v}</span>`;
+        else if (op.t === 's') bases += `<span class="db s" title="sub: ${op.old}→${op.v}">${op.v}</span>`;
+        else if (op.t === 'i') bases += `<span class="db i" title="ins: ${op.v}">${op.v}</span>`;
+        else if (op.t === 'd') bases += `<span class="db d" title="del: ${op.old}">-</span>`;
+      });
     } else {
-      const code=dict[curr],np=next?curr+next:null,nc=next?nextCode++:null;
-      if(np) dict[np]=nc;
-      steps.push({type:'lzw-emit',curr,next,pos,code,np,nc,stepNum:++stepNum,log:`Output code ${code} for '${curr}'`+(np?`, add dict[${nc}]='${np}'`:'')});
-      curr=next||''; pos++;
+      const ch = chunks[mIdx];
+      if (ch) bases = ch.seq.split('').map(b => `<span class="db m">${b}</span>`).join('');
     }
-  }
-  steps.push({type:'lzw-done',origLen:txt.length,numCodes:stepNum,log:`Done! ${txt.length*8} bits → ~${stepNum*12} bits`});
-  updateCounter();
-}
+    alnHtml += `<div class="aln-row">
+      <span class="aln-label">Chunk C_${mIdx}</span>
+      <div style="display:flex;gap:2px;flex-wrap:wrap">${bases}</div></div>`;
+  });
 
-function applyLZW(s) {
-  if (s.type==='lzw-extend') {
-    document.querySelectorAll('[id^="lzw-c-"]').forEach(b=>b.classList.remove('active','done'));
-    s.curr.split('').forEach((_,k)=>{
-      const box=document.getElementById(`lzw-c-${s.pos-s.curr.length+k}`);
-      if(box) box.classList.add('active');
-    });
-  } else if (s.type==='lzw-emit') {
-    for(let k=0;k<s.curr.length;k++){const b=document.getElementById(`lzw-c-${s.pos-s.curr.length-(s.next?1:0)+k}`);if(b){b.classList.remove('active');b.classList.add('done');}}
-    const strip=document.getElementById('lzw-codes'); if(strip){const sp=document.createElement('span');sp.className='out-code new';sp.title=`'${s.curr}'→${s.code}`;sp.textContent=s.code;strip.appendChild(sp);}
-    if(s.np&&s.nc){const tb=document.getElementById('lzw-dict-body');if(tb){const tr=document.createElement('tr');tr.className='new-entry';tr.innerHTML=`<td style="color:var(--green)">${s.nc}</td><td>${s.np}</td><td style="color:var(--muted)">${s.stepNum}</td>`;tb.appendChild(tr);tb.scrollTop=tb.scrollHeight;}}
-    const ib=document.getElementById('lzw-iter-body');if(ib){const tr=document.createElement('tr');tr.innerHTML=`<td style="color:var(--muted)">${s.stepNum}</td><td style="color:var(--blue)">${s.curr}</td><td style="color:var(--amber)">${s.next||'—'}</td><td style="color:var(--purple)">${s.code}</td><td style="color:var(--green)">${s.np?`${s.nc}='${s.np}'`:'—'}</td>`;ib.appendChild(tr);ib.parentElement.scrollTop=ib.parentElement.scrollHeight;}
-  } else if (s.type==='lzw-done') { setMetrics(s.origLen*8,s.numCodes*12,'bits'); }
-}
+  let rulesHtml = '';
+  bkt.members.forEach(mIdx => {
+    if (mIdx === bkt.tmplIdx) return;
+    const cmp = results.cage.compressed[mIdx];
+    const box = document.createElement('div');
+    if (cmp) {
+      const edits = cmp.ops.filter(o => o.t !== 'm');
+      const script = edits.map(op => {
+        if (op.t === 's') return `sub(${op.p},'${op.v}')`;
+        if (op.t === 'i') return `ins(${op.p},'${op.v}')`;
+        return `del(${op.p})`;
+      }).join(', ');
+      rulesHtml += `<div class="rule-box">C_${mIdx} → C_${bkt.tmplIdx} + [${script || '<em style="color:var(--dim)">identical</em>'}]</div>`;
+    } else {
+      rulesHtml += `<div class="rule-box lit">C_${mIdx} → <em>Literal</em> (similarity below threshold)</div>`;
+    }
+  });
 
-// ============================================================
-// BWT
-// ============================================================
-function buildBWT(txt) {
-  const input = txt+'$';
-  const descEl = document.createElement('div');
-  descEl.className = 'desc-panel';
-  descEl.innerHTML = `<p><strong>Algorithm:</strong> (1) Append '$' sentinel. (2) Generate all n rotations. (3) Sort them lexicographically. (4) The last column is the BWT output. Reversible using the first + last columns.</p>
-    <p><strong>Why it helps:</strong> The output clusters identical characters together, making subsequent RLE or entropy coding far more effective. Core of bzip2.</p>
-    <div class="complexity-row">
-      <span class="complexity-badge">Time <span>O(n log n)</span></span>
-      <span class="complexity-badge">Space <span>O(n²)</span></span>
-      <span class="complexity-badge">Type <span>Reversible Transform</span></span>
+  detail.innerHTML = `
+    <div style="font-size:15px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:10px">
+      Band ${bkt.band} | Bucket 0x${bkt.key.toString(16).substring(0, 10)} | ${bkt.members.length} collision(s)
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:rgba(74,90,112,0.4)"></div>Match</div>
+      <div class="legend-item"><div class="ldot" style="background:#ef4444"></div>Substitution</div>
+      <div class="legend-item"><div class="ldot" style="background:#22c55e"></div>Insertion</div>
+      <div class="legend-item"><div class="ldot" style="background:#3b82f6"></div>Deletion</div>
+    </div>
+    <div class="vis-panel">
+      <div class="vis-title">🧬 Sequence Alignment</div>
+      <div class="aln-wrap">${alnHtml}</div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">📜 Grammar Production Rules</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${rulesHtml}</div>
     </div>`;
-  document.getElementById('viz-canvas').appendChild(descEl);
-
-  const rotSec = document.createElement('div');
-  rotSec.innerHTML = '<div class="sec-hdr">All rotations (unsorted)</div>';
-  const rotWrap = document.createElement('div'); rotWrap.className='matrix-wrap'; rotWrap.id='bwt-unsorted';
-  rotSec.appendChild(rotWrap);
-  document.getElementById('viz-canvas').appendChild(rotSec);
-
-  const sortSec = document.createElement('div');
-  sortSec.innerHTML = '<div class="sec-hdr">Sorted rotations — last column highlighted</div>';
-  const sortWrap = document.createElement('div'); sortWrap.className='matrix-wrap'; sortWrap.id='bwt-sorted';
-  sortSec.appendChild(sortWrap);
-  document.getElementById('viz-canvas').appendChild(sortSec);
-
-  const outSec = document.createElement('div');
-  outSec.innerHTML = '<div class="sec-hdr">BWT output (last column)</div>';
-  const outArr = document.createElement('div'); outArr.className='char-array'; outArr.id='bwt-output';
-  outSec.appendChild(outArr);
-  document.getElementById('viz-canvas').appendChild(outSec);
-
-  const rotations=[];
-  for(let i=0;i<input.length;i++) rotations.push(input.slice(i)+input.slice(0,i));
-  const sorted=[...rotations].sort();
-  const lastCol=sorted.map(r=>r[r.length-1]);
-  const origIdx=sorted.indexOf(input);
-
-  steps=[];
-  steps.push({type:'bwt-unsorted',rotations,log:`Generated ${rotations.length} rotations of "${input}"`});
-  steps.push({type:'bwt-sorted',sorted,lastCol,origIdx,log:'Sorted all rotations lexicographically'});
-  lastCol.forEach((c,i)=>steps.push({type:'bwt-highlight',col:lastCol,idx:i,origIdx,log:`Row ${i} last char: '${c}'${i===origIdx?' ← original string':''}`}));
-  steps.push({type:'bwt-output',lastCol,origIdx,log:`BWT output: "${lastCol.join('')}" (original at row ${origIdx})`});
-  steps.push({type:'bwt-done',input,log:'Transform complete'});
-  updateCounter();
 }
 
-function renderMatrix(id, rows, origIdx=-1) {
-  const wrap=document.getElementById(id); if(!wrap) return;
-  wrap.innerHTML='';
-  const matrix=document.createElement('div'); matrix.className='matrix';
-  rows.forEach((row,ri)=>{
-    const rowDiv=document.createElement('div'); rowDiv.className='matrix-row'+(ri===origIdx?' active-row':'');
-    const lbl=document.createElement('div'); lbl.className='matrix-row-label'; lbl.textContent=ri;
-    rowDiv.appendChild(lbl);
-    row.split('').forEach((ch,ci)=>{
-      const cell=document.createElement('div');
-      cell.className='matrix-cell'+(ci===row.length-1?' highlight':'')+(ri===origIdx?' sorted':'');
-      cell.textContent=ch; rowDiv.appendChild(cell);
-    });
-    matrix.appendChild(rowDiv);
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('seq-box').value = activeDna;
+  updateSeqMeta(activeDna);
+  initCharts();
+
+  // Auto-run on any textarea input (with 600ms debounce)
+  document.getElementById('seq-box').addEventListener('input', () => {
+    document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+    triggerDebounce();
   });
-  wrap.appendChild(matrix);
-}
 
-function applyBWT(s) {
-  if (s.type==='bwt-unsorted') { renderMatrix('bwt-unsorted',s.rotations); }
-  else if (s.type==='bwt-sorted') { renderMatrix('bwt-sorted',s.sorted,s.origIdx); }
-  else if (s.type==='bwt-output') {
-    const arr=document.getElementById('bwt-output'); if(!arr) return;
-    s.lastCol.forEach((c,i)=>{
-      const box=document.createElement('div'); box.className='char-box '+(i===s.origIdx?'active':'done');
-      box.textContent=c; arr.appendChild(box);
-    });
-  } else if (s.type==='bwt-done') {
-    const lc=steps.find(s=>s.type==='bwt-output')?.lastCol||[];
-    const runs=lc.reduce((n,c,i,a)=>i>0&&c===a[i-1]?n:n+1,0);
-    setMetrics(lc.length,runs,'unique runs');
-  }
-}
-
-// ============================================================
-// COMPARE
-// ============================================================
-function renderCompare() {
-  const txt=getInput();
-  const canvas=document.getElementById('viz-canvas');
-  canvas.innerHTML='';
-
-  const rle=(()=>{
-    let out='',i=0;
-    while(i<txt.length){let j=i;while(j<txt.length&&txt[j]===txt[i])j++;out+=j-i===1?txt[i]:txt[i]+(j-i);i=j;}
-    return {orig:txt.length,comp:out.length,unit:'chars',name:'RLE',color:'#388bfd'};
-  })();
-
-  const huff=(()=>{
-    const freq={};for(const c of txt)freq[c]=(freq[c]||0)+1;
-    let nodes=Object.keys(freq).map(c=>({c,f:freq[c],l:null,r:null}));
-    nodes.sort((a,b)=>a.f-b.f);
-    while(nodes.length>1){const a=nodes.shift(),b=nodes.shift();nodes.push({c:'*',f:a.f+b.f,l:a,r:b});nodes.sort((a,b)=>a.f-b.f);}
-    const codes={};
-    function gen(n,code){if(!n)return;if(!n.l&&!n.r){codes[n.c]=code||'0';return;}gen(n.l,code+'0');gen(n.r,code+'1');}
-    gen(nodes[0],'');
-    const bits=txt.split('').reduce((s,c)=>s+codes[c].length,0);
-    return {orig:txt.length*8,comp:bits,unit:'bits',name:'Huffman',color:'#d29922'};
-  })();
-
-  const lzw=(()=>{
-    const dict={};for(let i=0;i<256;i++)dict[String.fromCharCode(i)]=i;
-    let nxt=256,curr=txt[0],pos=1,codes=0;
-    while(pos<=txt.length){const next=pos<txt.length?txt[pos]:null;if(next&&dict[curr+next]!==undefined){curr+=next;pos++;}else{codes++;if(next)dict[curr+next]=nxt++;curr=next||'';pos++;}}
-    return {orig:txt.length*8,comp:codes*12,unit:'bits',name:'LZW',color:'#bc8cff'};
-  })();
-
-  const bwt=(()=>{
-    const input=txt+'$';const rotations=[];
-    for(let i=0;i<input.length;i++)rotations.push(input.slice(i)+input.slice(0,i));
-    const sorted=[...rotations].sort();
-    const lc=sorted.map(r=>r[r.length-1]);
-    const runs=lc.reduce((n,c,i,a)=>i>0&&c===a[i-1]?n:n+1,0);
-    return {orig:lc.length,comp:runs,unit:'unique runs',name:'BWT',color:'#f0883e',note:'(lower = more compressible)'};
-  })();
-
-  const results=[rle,huff,lzw,bwt];
-
-  const titleEl=document.createElement('div');
-  titleEl.innerHTML=`<div class="sec-hdr">Comparing all algorithms on: "${txt}"</div>`;
-  canvas.appendChild(titleEl);
-
-  const grid=document.createElement('div');
-  grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px';
-  results.forEach(r=>{
-    const ratio=r.orig>0?r.comp/r.orig:1;
-    const saved=Math.round((1-ratio)*100);
-    const card=document.createElement('div'); card.className='compare-card';
-    card.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px';
-    card.innerHTML=`<h3 style="color:${r.color};font-size:14px;font-weight:600;margin-bottom:12px">${r.name}</h3>
-      <div style="font-size:12px;color:var(--muted);margin:4px 0;font-family:var(--mono)">Original: <span style="color:var(--text)">${r.orig} ${r.unit}</span></div>
-      <div style="font-size:12px;color:var(--muted);margin:4px 0;font-family:var(--mono)">Output: <span style="color:var(--text)">${r.comp} ${r.unit}</span></div>
-      <div style="height:10px;background:var(--bg3);border-radius:5px;overflow:hidden;margin:8px 0">
-        <div style="height:100%;width:${Math.min(100,ratio*100)}%;background:${r.color};border-radius:5px;opacity:0.75"></div>
-      </div>
-      <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">Saved: <span style="color:${saved>0?'var(--green)':'var(--red)'}">${saved}%</span></div>
-      ${r.note?`<div style="font-size:11px;color:var(--muted);margin-top:6px">${r.note}</div>`:''}`;
-    grid.appendChild(card);
-  });
-  canvas.appendChild(grid);
-
-  const chartSec=document.createElement('div');
-  chartSec.innerHTML='<div class="sec-hdr" style="margin-top:4px">Compression ratio (relative to original)</div>';
-  const chartDiv=document.createElement('div');
-  chartDiv.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px';
-  results.forEach(r=>{
-    const ratio=r.orig>0?r.comp/r.orig:1;
-    const pct=Math.min(100,ratio*100);
-    const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:12px;font-size:13px';
-    row.innerHTML=`<span style="width:80px;color:${r.color};font-weight:600">${r.name}</span>
-      <div style="flex:1;height:20px;background:var(--bg3);border-radius:4px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${r.color};border-radius:4px;opacity:0.7"></div>
-      </div>
-      <span style="font-family:var(--mono);font-size:12px;color:var(--muted);min-width:55px;text-align:right">${Math.round((1-(r.comp/r.orig))*100)}% saved</span>`;
-    chartDiv.appendChild(row);
-  });
-  chartSec.appendChild(chartDiv);
-  canvas.appendChild(chartSec);
-
-  const note=document.createElement('div'); note.className='desc-panel';
-  note.innerHTML=`<p><strong>Note on units:</strong> RLE is compared in characters; Huffman and LZW in bits (8 bits = 1 char); BWT shows unique run count (a proxy for compressibility). Short or random inputs may not compress well — try "AAAAAABBBBBCCCC" for RLE or "MISSISSIPPI" for BWT.</p>
-    <p><strong>Theoretical limit:</strong> Shannon entropy is the lower bound. Huffman gets within 1 bit/symbol of optimal. LZW is asymptotically optimal for repetitive data. BWT is a transform, not a compressor — its output feeds into RLE/entropy coding.</p>`;
-  canvas.appendChild(note);
-}
-
-// ===== INIT =====
-buildSteps();
+  runPipeline();
+});
 </script>
 </body>
 </html>
