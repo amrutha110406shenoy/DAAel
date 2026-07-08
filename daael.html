@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Compression Algorithm Visualizer</title>
+<style>
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --surface: #1c2128;
+  --border: #30363d; --border2: #484f58; --text: #e6edf3; --muted: #8b949e;
+  --green: #3fb950; --green-dim: #1a4223; --blue: #388bfd; --blue-dim: #1f3a5f;
+  --amber: #d29922; --amber-dim: #3d2e00; --red: #f85149; --red-dim: #3d1a1a;
+  --purple: #bc8cff; --purple-dim: #2d1f5e; --orange: #f0883e; --cyan: #56d364;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+.topnav {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 0 20px; display: flex; align-items: center; height: 52px;
+  position: sticky; top: 0; z-index: 100; gap: 0;
+}
+.logo { font-size: 15px; font-weight: 700; color: var(--green); letter-spacing: -0.5px; margin-right: 32px; white-space: nowrap; }
+.logo span { color: var(--text); }
+.nav-tabs { display: flex; gap: 2px; overflow-x: auto; }
+.nav-tab {
+  padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  cursor: pointer; color: var(--muted); border: 1px solid transparent;
+  background: none; white-space: nowrap; transition: all 0.15s; font-family: var(--font);
+}
+.nav-tab:hover { color: var(--text); background: var(--bg3); }
+.nav-tab.active { color: var(--text); background: var(--bg3); border-color: var(--border); }
+.nav-tab .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+.main-layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 52px); }
+
+.left-panel { background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.panel-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.panel-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+textarea {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: var(--mono); font-size: 13px; padding: 10px;
+  resize: none; height: 72px; outline: none; transition: border-color 0.15s;
+}
+textarea:focus { border-color: var(--blue); }
+.speed-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+input[type=range] { flex: 1; accent-color: var(--green); height: 3px; }
+.btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn {
+  padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border); background: var(--bg3);
+  color: var(--text); transition: all 0.15s; font-family: var(--font);
+}
+.btn:hover { border-color: var(--border2); background: var(--surface); }
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+.btn.primary:hover { background: #1f4d2a; }
+.btn.danger { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+
+.log-panel { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; }
+.log-entry {
+  font-size: 12px; font-family: var(--mono); color: var(--muted);
+  padding: 4px 8px; border-radius: 4px; border-left: 2px solid transparent;
+  line-height: 1.5; animation: fadeIn 0.2s ease;
+}
+.log-entry.info { color: var(--blue); border-left-color: var(--blue); background: rgba(56,139,253,0.05); }
+.log-entry.success { color: var(--green); border-left-color: var(--green); background: rgba(63,185,80,0.05); }
+.log-entry.warn { color: var(--amber); border-left-color: var(--amber); background: rgba(210,153,34,0.05); }
+.log-entry.highlight { color: var(--purple); border-left-color: var(--purple); background: rgba(188,140,255,0.05); }
+
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 16px; border-bottom: 1px solid var(--border); }
+.metric-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+.metric-val { font-size: 18px; font-weight: 600; font-family: var(--mono); color: var(--text); }
+.metric-val.green { color: var(--green); }
+.metric-val.red { color: var(--red); }
+
+.viz-area { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.viz-header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+.algo-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.algo-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.viz-canvas { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+.char-array { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start; }
+.char-box {
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  border-radius: 5px; font-family: var(--mono); font-size: 14px; font-weight: 600;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  transition: all 0.25s; position: relative;
+}
+.char-box.active { background: rgba(210,153,34,0.2); border-color: var(--amber); color: var(--amber); transform: scale(1.15); z-index: 2; box-shadow: 0 0 12px rgba(210,153,34,0.3); }
+.char-box.done { background: rgba(63,185,80,0.1); border-color: var(--green); color: var(--green); }
+.char-box.group0 { background: rgba(56,139,253,0.12); border-color: rgba(56,139,253,0.5); color: var(--blue); }
+.char-box.group1 { background: rgba(188,140,255,0.12); border-color: rgba(188,140,255,0.5); color: var(--purple); }
+.char-box.group2 { background: rgba(240,136,62,0.12); border-color: rgba(240,136,62,0.5); color: var(--orange); }
+.char-box.group3 { background: rgba(63,185,80,0.12); border-color: rgba(63,185,80,0.5); color: var(--green); }
+.char-box.group4 { background: rgba(248,81,73,0.12); border-color: rgba(248,81,73,0.5); color: var(--red); }
+.char-box.group5 { background: rgba(86,211,100,0.12); border-color: rgba(86,211,100,0.5); color: var(--cyan); }
+.char-idx { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--muted); font-family: var(--mono); }
+
+.token-strip { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.token { display: flex; align-items: center; gap: 2px; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; font-family: var(--mono); font-size: 13px; animation: popIn 0.3s ease; }
+.token .t-char { color: var(--blue); font-weight: 700; }
+.token .t-cnt { color: var(--amber); }
+.token .t-sep { color: var(--border2); margin: 0 2px; }
+
+#huffman-tree-svg { width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; display: block; min-height: 300px; }
+
+.code-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.code-table th { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; }
+.code-table td { padding: 7px 12px; border-bottom: 1px solid rgba(48,54,61,0.5); font-family: var(--mono); }
+.bit-0 { color: var(--blue); }
+.bit-1 { color: var(--purple); }
+
+.lzw-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.lzw-table th { padding: 7px 10px; text-align: left; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1px solid var(--border); font-weight: 500; }
+.lzw-table td { padding: 5px 10px; border-bottom: 1px solid rgba(48,54,61,0.4); font-family: var(--mono); font-size: 12px; }
+.lzw-table tr.new-entry { background: rgba(63,185,80,0.08); }
+.lzw-table tr.new-entry td:first-child { border-left: 2px solid var(--green); }
+
+.matrix-wrap { overflow-x: auto; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.matrix { display: flex; flex-direction: column; gap: 3px; font-family: var(--mono); font-size: 13px; }
+.matrix-row { display: flex; gap: 2px; align-items: center; padding: 2px 0; transition: background 0.2s; }
+.matrix-row.active-row { background: rgba(210,153,34,0.1); border-radius: 4px; padding: 2px 4px; }
+.matrix-cell { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 3px; background: var(--bg3); border: 1px solid var(--border); font-size: 11px; }
+.matrix-cell.highlight { background: rgba(56,139,253,0.2); border-color: var(--blue); color: var(--blue); }
+.matrix-cell.sorted { background: rgba(63,185,80,0.1); border-color: var(--green); color: var(--green); }
+.matrix-row-label { font-size: 11px; color: var(--muted); width: 24px; text-align: right; margin-right: 4px; }
+
+.prob-bars { display: flex; flex-direction: column; gap: 6px; }
+.prob-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.prob-label { font-family: var(--mono); width: 20px; color: var(--text); }
+.prob-bar-wrap { flex: 1; background: var(--bg3); border-radius: 3px; height: 16px; overflow: hidden; }
+.prob-bar { height: 100%; border-radius: 3px; transition: width 0.5s; background: var(--blue); }
+.prob-val { font-family: var(--mono); color: var(--muted); font-size: 11px; width: 70px; text-align: right; }
+
+.sec-hdr { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.desc-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.desc-panel p { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 8px; }
+.desc-panel p:last-child { margin-bottom: 0; }
+.desc-panel strong { color: var(--text); }
+.complexity-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.complexity-badge { font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--bg3); border: 1px solid var(--border); color: var(--muted); }
+.complexity-badge span { color: var(--green); }
+
+.output-strip { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.out-code { font-family: var(--mono); font-size: 12px; padding: 3px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; color: var(--purple); animation: popIn 0.3s ease; }
+.out-code.new { border-color: var(--purple); background: rgba(188,140,255,0.1); }
+
+.step-nav { display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: var(--bg2); border-top: 1px solid var(--border); flex-shrink: 0; }
+.step-counter { font-size: 12px; color: var(--muted); font-family: var(--mono); background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: none; } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="logo">compress<span>.viz</span></div>
+  <div class="nav-tabs" id="nav-tabs">
+    <button class="nav-tab active" data-algo="rle"><span class="dot" style="background:#388bfd"></span>RLE</button>
+    <button class="nav-tab" data-algo="huffman"><span class="dot" style="background:#d29922"></span>Huffman</button>
+    <button class="nav-tab" data-algo="lzw"><span class="dot" style="background:#bc8cff"></span>LZW</button>
+    <button class="nav-tab" data-algo="bwt"><span class="dot" style="background:#f0883e"></span>BWT</button>
+    <button class="nav-tab" data-algo="compare"><span class="dot" style="background:#8b949e"></span>Compare</button>
+  </div>
+</nav>
+
+<div class="main-layout">
+  <div class="left-panel">
+    <div class="panel-section">
+      <div class="panel-label">Input</div>
+      <textarea id="input-text" placeholder="Type text to compress...">AABBBCCDDDDEE</textarea>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn" onclick="setPreset('AABBBCCDDDDEE')">Preset 1</button>
+        <button class="btn" onclick="setPreset('MISSISSIPPI')">Preset 2</button>
+        <button class="btn" onclick="setPreset('ABRACADABRA')">Preset 3</button>
+        <button class="btn" onclick="setPreset('BANANA')">Preset 4</button>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">Speed</div>
+      <div class="speed-row">
+        <span>Slow</span>
+        <input type="range" id="speed-slider" min="100" max="1400" value="700" oninput="updateSpeed()">
+        <span>Fast</span>
+        <span id="speed-label" style="min-width:50px;text-align:right;font-family:var(--mono);font-size:11px">700ms</span>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">Controls</div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-play" onclick="playPause()">▶ Play</button>
+        <button class="btn" onclick="stepForward()">Step →</button>
+        <button class="btn" onclick="stepBack()">← Back</button>
+        <button class="btn danger" onclick="resetAll()">↺ Reset</button>
+      </div>
+    </div>
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="metric-label">Original</div><div class="metric-val" id="m-orig">—</div></div>
+      <div class="metric-card"><div class="metric-label">Compressed</div><div class="metric-val" id="m-comp">—</div></div>
+      <div class="metric-card"><div class="metric-label">Ratio</div><div class="metric-val" id="m-ratio">—</div></div>
+      <div class="metric-card"><div class="metric-label">Saved</div><div class="metric-val green" id="m-saved">—</div></div>
+    </div>
+    <div class="log-panel" id="log-panel"></div>
+  </div>
+
+  <div class="viz-area">
+    <div class="viz-header">
+      <div class="algo-title" id="algo-title">Run-Length Encoding</div>
+      <div class="algo-desc" id="algo-desc">Replaces consecutive repeated characters with the character and its count.</div>
+    </div>
+    <div class="viz-canvas" id="viz-canvas"></div>
+    <div class="step-nav">
+      <span class="step-counter" id="step-counter">Step 0 / 0</span>
+      <div style="flex:1"></div>
+      <button class="btn" onclick="stepBack()">← Back</button>
+      <button class="btn primary" id="btn-play2" onclick="playPause()">▶ Play</button>
+      <button class="btn" onclick="stepForward()">Step →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentAlgo = 'rle';
+let steps = [], stepIdx = 0, playing = false, playTimer = null, speed = 700;
+const COLORS = ['group0','group1','group2','group3','group4','group5'];
+
+const ALGO_META = {
+  rle:     { title: 'Run-Length Encoding (RLE)',         desc: 'Replaces consecutive repeated characters with the character and its count. O(n) time. Effective when data has many consecutive repeated symbols. Expands data when there are no repetitions.' },
+  huffman: { title: 'Huffman Coding',                    desc: 'Assigns shorter binary codes to more frequent characters, longer codes to rare ones. Builds a binary tree greedily. Produces optimal prefix-free codes. Used in ZIP, JPEG, MP3.' },
+  lzw:     { title: 'LZW Compression',                   desc: 'Dictionary-based: builds a table of patterns as it scans input. Outputs code for the longest match, then adds a new pattern. No need to transmit the dictionary — the decoder rebuilds it on the fly.' },
+  bwt:     { title: 'Burrows-Wheeler Transform (BWT)',   desc: 'A reversible transformation that rearranges text so similar characters cluster together, making subsequent compression much more effective. Used as a pre-processor in bzip2.' },
+  compare: { title: 'Algorithm Comparison',              desc: 'Run all four algorithms on the same input and compare their compression ratios side-by-side.' }
+};
+
+// ===== NAV =====
+document.getElementById('nav-tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.nav-tab');
+  if (!tab) return;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  currentAlgo = tab.dataset.algo;
+  resetAll();
+  const meta = ALGO_META[currentAlgo];
+  document.getElementById('algo-title').textContent = meta.title;
+  document.getElementById('algo-desc').textContent = meta.desc;
+  if (currentAlgo === 'compare') renderCompare();
+});
+
+function setPreset(txt) { document.getElementById('input-text').value = txt; resetAll(); }
+function updateSpeed() { speed = parseInt(document.getElementById('speed-slider').value); document.getElementById('speed-label').textContent = speed+'ms'; }
+function getInput() { return document.getElementById('input-text').value.trim() || 'HELLO'; }
+
+// ===== LOG =====
+function log(msg, type='') {
+  const panel = document.getElementById('log-panel');
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + type;
+  el.textContent = msg;
+  panel.appendChild(el);
+  panel.scrollTop = panel.scrollHeight;
+}
+function clearLog() { document.getElementById('log-panel').innerHTML = ''; }
+
+// ===== METRICS =====
+function setMetrics(orig, comp, unit='chars') {
+  document.getElementById('m-orig').textContent = orig+' '+unit;
+  document.getElementById('m-comp').textContent = comp+' '+unit;
+  const ratio = orig>0 ? (comp/orig).toFixed(2) : '—';
+  const saved = orig>0 ? Math.round((1-comp/orig)*100) : 0;
+  document.getElementById('m-ratio').textContent = ratio+'x';
+  const el = document.getElementById('m-saved');
+  el.textContent = saved+'%';
+  el.className = 'metric-val '+(saved>0?'green':'red');
+}
+function clearMetrics() {
+  ['m-orig','m-comp','m-ratio','m-saved'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('m-saved').className = 'metric-val green';
+}
+
+// ===== PLAYBACK =====
+function updatePlayBtn() {
+  const lbl = playing ? '⏸ Pause' : '▶ Play';
+  document.getElementById('btn-play').textContent = lbl;
+  document.getElementById('btn-play2').textContent = lbl;
+}
+function playPause() {
+  if (playing) { clearInterval(playTimer); playing = false; updatePlayBtn(); return; }
+  if (stepIdx >= steps.length) stepIdx = 0;
+  playing = true; updatePlayBtn();
+  playTimer = setInterval(() => {
+    if (stepIdx >= steps.length) { clearInterval(playTimer); playing = false; updatePlayBtn(); return; }
+    applyStep(stepIdx++);
+  }, speed);
+}
+function stepForward() { if (playing) { clearInterval(playTimer); playing = false; updatePlayBtn(); } if (stepIdx < steps.length) applyStep(stepIdx++); }
+function stepBack() {
+  if (playing) { clearInterval(playTimer); playing = false; updatePlayBtn(); }
+  if (stepIdx > 0) { stepIdx--; rebuildFromStart(stepIdx); }
+}
+function rebuildFromStart(target) { initCanvas(); for (let i=0;i<=target;i++) applyStep(i,true); stepIdx=target+1; }
+function resetAll() {
+  clearInterval(playTimer); playing=false; stepIdx=0; steps=[];
+  updatePlayBtn(); clearLog(); updateCounter(); initCanvas(); clearMetrics();
+  if (currentAlgo !== 'compare') buildSteps();
+}
+function updateCounter() { document.getElementById('step-counter').textContent = `Step ${stepIdx} / ${steps.length}`; }
+function initCanvas() { document.getElementById('viz-canvas').innerHTML = ''; }
+
+function logType(t) {
+  if (!t) return '';
+  if (t.includes('done')) return 'success';
+  if (t.includes('scan')||t.includes('freq')||t.includes('init')) return 'info';
+  if (t.includes('emit')||t.includes('encode')||t.includes('output')) return 'highlight';
+  if (t.includes('merge')||t.includes('sorted')||t.includes('extend')) return 'warn';
+  return '';
+}
+
+// ===== STEP DISPATCHER =====
+function buildSteps() {
+  const txt = getInput();
+  if (currentAlgo==='rle') buildRLE(txt);
+  else if (currentAlgo==='huffman') buildHuffman(txt);
+  else if (currentAlgo==='lzw') buildLZW(txt);
+  else if (currentAlgo==='bwt') buildBWT(txt);
+}
+function applyStep(idx, silent=false) {
+  const s = steps[idx]; if (!s) { updateCounter(); return; }
+  if (!silent) log(s.log||'', logType(s.type));
+  if (currentAlgo==='rle') applyRLE(s);
+  else if (currentAlgo==='huffman') applyHuffman(s);
+  else if (currentAlgo==='lzw') applyLZW(s);
+  else if (currentAlgo==='bwt') applyBWT(s);
+  updateCounter();
+}
+
+// ============================================================
+// RLE
+// ============================================================
+function buildRLE(txt) {
+  const descEl = document.createElement('div');
+  descEl.className = 'desc-panel';
+  descEl.innerHTML = `<p><strong>Algorithm:</strong> Scan left-to-right, count consecutive identical characters. When the character changes, emit (char, count). Count=1 emits just the char.</p>
+    <p><strong>Best case:</strong> AAAAAAA → A7 (massive savings). <strong>Worst case:</strong> ABCDEF → A1B1C1... (expansion).</p>
+    <div class="complexity-row">
+      <span class="complexity-badge">Time <span>O(n)</span></span>
+      <span class="complexity-badge">Space <span>O(n)</span></span>
+      <span class="complexity-badge">Type <span>Lossless</span></span>
+    </div>`;
+  document.getElementById('viz-canvas').appendChild(descEl);
+
+  const inputSec = document.createElement('div');
+  inputSec.innerHTML = '<div class="sec-hdr">Input characters</div>';
+  const charArr = document.createElement('div'); charArr.className='char-array'; charArr.id='rle-chars';
+  for (let i=0;i<txt.length;i++) {
+    const box=document.createElement('div'); box.className='char-box'; box.id=`rle-c-${i}`;
+    const idx=document.createElement('div'); idx.className='char-idx'; idx.textContent=i;
+    box.appendChild(idx); box.appendChild(document.createTextNode(txt[i])); charArr.appendChild(box);
+  }
+  inputSec.appendChild(charArr);
+  document.getElementById('viz-canvas').appendChild(inputSec);
+
+  const outSec = document.createElement('div');
+  outSec.innerHTML = '<div class="sec-hdr">Compressed output</div>';
+  const strip = document.createElement('div'); strip.className='token-strip'; strip.id='rle-tokens';
+  outSec.appendChild(strip);
+  document.getElementById('viz-canvas').appendChild(outSec);
+
+  steps = [];
+  let i=0;
+  while (i<txt.length) {
+    let j=i; while (j<txt.length && txt[j]===txt[i]) j++;
+    const g={char:txt[i],count:j-i,start:i,end:j-1,gi:steps.filter(s=>s.type==='rle-emit').length};
+    for (let k=i;k<j;k++) steps.push({type:'rle-scan',pos:k,gi:g.gi,log:`Scanning '${txt[k]}' at pos ${k}`});
+    const tok=g.count===1?g.char:`${g.char}${g.count}`;
+    steps.push({type:'rle-emit',char:g.char,count:g.count,start:g.start,end:g.end,gi:g.gi,tok,log:`Emit "${tok}" (run of ${g.count})`});
+    i=j;
+  }
+  let compLen=0; steps.filter(s=>s.type==='rle-emit').forEach(s=>{compLen+=s.tok.length;});
+  steps.push({type:'rle-done',origLen:txt.length,compLen,log:`Done! ${txt.length} → ${compLen} chars`});
+  updateCounter();
+}
+
+function applyRLE(s) {
+  if (s.type==='rle-scan') {
+    document.querySelectorAll('[id^="rle-c-"]').forEach(b=>b.classList.remove('active'));
+    document.getElementById(`rle-c-${s.pos}`)?.classList.add('active');
+  } else if (s.type==='rle-emit') {
+    const col=COLORS[s.gi%COLORS.length];
+    for (let k=s.start;k<=s.end;k++) { const b=document.getElementById(`rle-c-${k}`); if(b){b.classList.remove('active');b.classList.add(col);} }
+    const strip=document.getElementById('rle-tokens'); if(!strip) return;
+    const tok=document.createElement('div'); tok.className='token';
+    tok.innerHTML=`<span class="t-char">${s.char}</span>`+(s.count>1?`<span class="t-sep">×</span><span class="t-cnt">${s.count}</span>`:'');
+    strip.appendChild(tok);
+  } else if (s.type==='rle-done') { setMetrics(s.origLen,s.compLen,'chars'); }
+}
+
+// ============================================================
+// HUFFMAN
+// ============================================================
+let huffRoot = null;
+function buildHuffman(txt) {
+  const descEl = document.createElement('div');
+  descEl.className = 'desc-panel';
+  descEl.innerHTML = `<p><strong>Algorithm:</strong> Count frequencies → build min-heap → repeatedly merge two lowest-frequency nodes → DFS to assign codes (left=0, right=1).</p>
+    <p><strong>Key property:</strong> Prefix-free codes — no code is a prefix of another, allowing unambiguous decoding without separators.</p>
+    <div class="complexity-row">
+      <span class="complexity-badge">Time <span>O(n log n)</span></span>
+      <span class="complexity-badge">Space <span>O(n)</span></span>
+      <span class="complexity-badge">Type <span>Lossless · Optimal prefix-free</span></span>
+    </div>`;
+  document.getElementById('viz-canvas').appendChild(descEl);
+
+  const freqSec = document.createElement('div');
+  freqSec.innerHTML = '<div class="sec-hdr">Character frequencies</div>';
+  const freqBars = document.createElement('div'); freqBars.className='prob-bars'; freqBars.id='huff-freq';
+  freqSec.appendChild(freqBars);
+  document.getElementById('viz-canvas').appendChild(freqSec);
+
+  const treeSec = document.createElement('div');
+  treeSec.innerHTML = '<div class="sec-hdr">Huffman tree</div>';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.id='huffman-tree-svg'; svg.setAttribute('viewBox','0 0 760 280');
+  treeSec.appendChild(svg);
+  document.getElementById('viz-canvas').appendChild(treeSec);
+
+  const codeSec = document.createElement('div');
+  codeSec.innerHTML = '<div class="sec-hdr">Huffman codes</div>';
+  const tw = document.createElement('div');
+  tw.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden';
+  tw.innerHTML=`<table class="code-table"><thead><tr><th>Char</th><th>Freq</th><th>Code</th><th>Bits</th></tr></thead><tbody id="huff-tbody"></tbody></table>`;
+  codeSec.appendChild(tw);
+  const bitHdr = document.createElement('div'); bitHdr.innerHTML='<div class="sec-hdr" style="margin-top:12px">Encoded bit stream</div>';
+  const bitStrip = document.createElement('div'); bitStrip.className='output-strip'; bitStrip.id='huff-bits';
+  codeSec.appendChild(bitHdr); codeSec.appendChild(bitStrip);
+  document.getElementById('viz-canvas').appendChild(codeSec);
+
+  const freq={};
+  for (const c of txt) freq[c]=(freq[c]||0)+1;
+  const maxFreq=Math.max(...Object.values(freq));
+  const chars=Object.keys(freq);
+
+  setTimeout(()=>{
+    const fb=document.getElementById('huff-freq'); if(!fb) return;
+    chars.sort((a,b)=>freq[b]-freq[a]).forEach(c=>{
+      const row=document.createElement('div'); row.className='prob-row';
+      row.innerHTML=`<span class="prob-label">${c}</span>
+        <div class="prob-bar-wrap"><div class="prob-bar" style="width:${freq[c]/maxFreq*100}%"></div></div>
+        <span class="prob-val">${freq[c]} / ${txt.length}</span>`;
+      fb.appendChild(row);
+    });
+  }, 10);
+
+  // Build tree
+  let nodes=chars.map(c=>({char:c,freq:freq[c],left:null,right:null,id:c}));
+  nodes.sort((a,b)=>a.freq-b.freq);
+  let nid=100;
+  while (nodes.length>1) {
+    const a=nodes.shift(),b=nodes.shift();
+    const p={char:'*',freq:a.freq+b.freq,left:a,right:b,id:nid++};
+    nodes.push(p); nodes.sort((a,b)=>a.freq-b.freq);
+  }
+  huffRoot=nodes[0];
+
+  const codes={};
+  function gen(n,code){if(!n)return;if(!n.left&&!n.right){codes[n.char]=code||'0';return;}gen(n.left,code+'0');gen(n.right,code+'1');}
+  gen(huffRoot,'');
+
+  const origBits=txt.length*8;
+  const compBits=txt.split('').reduce((s,c)=>s+codes[c].length,0);
+
+  steps=[];
+  steps.push({type:'huff-freq',log:'Computed character frequencies'});
+  steps.push({type:'huff-tree',codes,freq,log:'Built Huffman tree and assigned prefix-free codes'});
+  for (let i=0;i<txt.length;i++) steps.push({type:'huff-encode',char:txt[i],code:codes[txt[i]],log:`Encode '${txt[i]}' → ${codes[txt[i]]}`});
+  steps.push({type:'huff-done',origBits,compBits,log:`Done! ${origBits} bits → ${compBits} bits`});
+  updateCounter();
+}
+
+function applyHuffman(s) {
+  if (s.type==='huff-tree') {
+    drawHuffTree(huffRoot);
+    const tbody=document.getElementById('huff-tbody'); if(!tbody) return;
+    Object.entries(s.codes).sort((a,b)=>b[1].length-a[1].length).forEach(([c,code])=>{
+      const tr=document.createElement('tr');
+      const bits=code.split('').map(b=>`<span class="${b==='0'?'bit-0':'bit-1'}">${b}</span>`).join('');
+      tr.innerHTML=`<td style="color:var(--blue);font-weight:600">${c}</td><td>${s.freq[c]}</td><td>${bits}</td><td>${code.length} bits</td>`;
+      tbody.appendChild(tr);
+    });
+  } else if (s.type==='huff-encode') {
+    const strip=document.getElementById('huff-bits'); if(!strip) return;
+    s.code.split('').forEach(b=>{
+      const span=document.createElement('span');
+      span.className='out-code'+(b==='1'?' new':'');
+      span.style.color=b==='0'?'var(--blue)':'var(--purple)';
+      span.textContent=b; strip.appendChild(span);
+    });
+    const sep=document.createElement('span');
+    sep.style.cssText='color:var(--border2);font-size:10px;align-self:center;padding:0 2px';
+    sep.textContent='|'; strip.appendChild(sep);
+  } else if (s.type==='huff-done') { setMetrics(s.origBits,s.compBits,'bits'); }
+}
+
+function drawHuffTree(root) {
+  const svg=document.getElementById('huffman-tree-svg'); if(!svg) return;
+  svg.innerHTML='';
+  const pos={};
+  let leafX=[30];
+  function assign(n,d){
+    if(!n)return;
+    if(!n.left&&!n.right){pos[n.id]={x:leafX[0],y:d*65+30};leafX[0]+=80;return;}
+    assign(n.left,d+1); assign(n.right,d+1);
+    const l=pos[n.left.id],r=pos[n.right.id];
+    if(l&&r) pos[n.id]={x:(l.x+r.x)/2,y:d*65+30};
+  }
+  assign(root,0);
+  const maxY=Math.max(...Object.values(pos).map(p=>p.y));
+  const maxX=Math.max(...Object.values(pos).map(p=>p.x));
+  svg.setAttribute('viewBox',`0 0 ${maxX+50} ${maxY+50}`);
+  svg.style.height=(maxY+50)+'px';
+
+  function drawEdges(n){
+    if(!n)return;
+    const p=pos[n.id];
+    [['left','0','#388bfd'],['right','1','#bc8cff']].forEach(([side,lbl,col])=>{
+      if(!n[side])return;
+      const cp=pos[n[side].id]; if(!p||!cp)return;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',p.x);line.setAttribute('y1',p.y+16);line.setAttribute('x2',cp.x);line.setAttribute('y2',cp.y-16);
+      line.style.cssText='stroke:#484f58;stroke-width:1.5'; svg.appendChild(line);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',(p.x+cp.x)/2+(side==='left'?-10:6));t.setAttribute('y',(p.y+cp.y)/2);
+      t.style.cssText=`fill:${col};font-size:12px;font-family:monospace;font-weight:700`;
+      t.textContent=lbl; svg.appendChild(t);
+      drawEdges(n[side]);
+    });
+  }
+  function drawNodes(n){
+    if(!n)return;
+    const p=pos[n.id]; if(!p)return;
+    const isLeaf=!n.left&&!n.right;
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',16);
+    c.style.cssText=isLeaf?'fill:rgba(56,139,253,0.15);stroke:#388bfd;stroke-width:1.5':'fill:rgba(33,38,45,0.9);stroke:#484f58;stroke-width:1.5';
+    svg.appendChild(c);
+    const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t1.setAttribute('x',p.x);t1.setAttribute('y',isLeaf?p.y-2:p.y+4);t1.setAttribute('text-anchor','middle');
+    t1.style.cssText=`fill:${isLeaf?'#388bfd':'#e6edf3'};font-size:12px;font-weight:600;font-family:monospace`;
+    t1.textContent=isLeaf?n.char:n.freq; svg.appendChild(t1);
+    if(isLeaf){
+      const t2=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t2.setAttribute('x',p.x);t2.setAttribute('y',p.y+12);t2.setAttribute('text-anchor','middle');
+      t2.style.cssText='fill:#8b949e;font-size:9px;font-family:monospace';
+      t2.textContent=n.freq; svg.appendChild(t2);
+    }
+    drawNodes(n.left); drawNodes(n.right);
+  }
+  drawEdges(root); drawNodes(root);
+}
+
+// ============================================================
+// LZW
+// ============================================================
+function buildLZW(txt) {
+  const descEl = document.createElement('div');
+  descEl.className = 'desc-panel';
+  descEl.innerHTML = `<p><strong>Algorithm:</strong> Initialize dictionary with all ASCII chars. Scan input: find longest match, output its code, add (match + next char) to dictionary, advance.</p>
+    <p><strong>Key insight:</strong> The decoder rebuilds the same dictionary during decompression — no need to transmit it. Handles the "special case" when the decoder hasn't yet seen a code.</p>
+    <div class="complexity-row">
+      <span class="complexity-badge">Time <span>O(n)</span></span>
+      <span class="complexity-badge">Space <span>O(dict)</span></span>
+      <span class="complexity-badge">Type <span>Lossless</span></span>
+    </div>`;
+  document.getElementById('viz-canvas').appendChild(descEl);
+
+  const inputSec = document.createElement('div');
+  inputSec.innerHTML = '<div class="sec-hdr">Input (scanning)</div>';
+  const charArr = document.createElement('div'); charArr.className='char-array'; charArr.id='lzw-chars';
+  for (let i=0;i<txt.length;i++) {
+    const box=document.createElement('div'); box.className='char-box'; box.id=`lzw-c-${i}`;
+    const idx=document.createElement('div'); idx.className='char-idx'; idx.textContent=i;
+    box.appendChild(idx); box.appendChild(document.createTextNode(txt[i])); charArr.appendChild(box);
+  }
+  inputSec.appendChild(charArr);
+  document.getElementById('viz-canvas').appendChild(inputSec);
+
+  const outSec = document.createElement('div');
+  outSec.innerHTML = '<div class="sec-hdr">Output codes</div>';
+  const strip = document.createElement('div'); strip.className='output-strip'; strip.id='lzw-codes';
+  outSec.appendChild(strip);
+  document.getElementById('viz-canvas').appendChild(outSec);
+
+  const dictSec = document.createElement('div');
+  dictSec.innerHTML = '<div class="sec-hdr">LZW Dictionary (new entries)</div>';
+  const dw = document.createElement('div');
+  dw.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;max-height:200px;overflow-y:auto';
+  dw.innerHTML=`<table class="lzw-table"><thead><tr><th>Code</th><th>Pattern</th><th>Step</th></tr></thead><tbody id="lzw-dict-body"></tbody></table>`;
+  dictSec.appendChild(dw);
+
+  const iterSec = document.createElement('div');
+  iterSec.innerHTML = '<div class="sec-hdr">Step log</div>';
+  const iw = document.createElement('div');
+  iw.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;max-height:200px;overflow-y:auto';
+  iw.innerHTML=`<table class="lzw-table"><thead><tr><th>Step</th><th>Current</th><th>Next</th><th>Output</th><th>New entry</th></tr></thead><tbody id="lzw-iter-body"></tbody></table>`;
+  iterSec.appendChild(iw);
+
+  document.getElementById('viz-canvas').appendChild(dictSec);
+  document.getElementById('viz-canvas').appendChild(iterSec);
+
+  const dict={};
+  for (let i=0;i<256;i++) dict[String.fromCharCode(i)]=i;
+  let nextCode=256,curr=txt[0],pos=1,stepNum=0;
+  steps=[];
+  while (pos<=txt.length) {
+    const next=pos<txt.length?txt[pos]:null;
+    if(next&&dict[curr+next]!==undefined){
+      steps.push({type:'lzw-extend',curr,next,pos,log:`'${curr}'+'${next}'='${curr+next}' found in dict, extend`});
+      curr+=next; pos++;
+    } else {
+      const code=dict[curr],np=next?curr+next:null,nc=next?nextCode++:null;
+      if(np) dict[np]=nc;
+      steps.push({type:'lzw-emit',curr,next,pos,code,np,nc,stepNum:++stepNum,log:`Output code ${code} for '${curr}'`+(np?`, add dict[${nc}]='${np}'`:'')});
+      curr=next||''; pos++;
+    }
+  }
+  steps.push({type:'lzw-done',origLen:txt.length,numCodes:stepNum,log:`Done! ${txt.length*8} bits → ~${stepNum*12} bits`});
+  updateCounter();
+}
+
+function applyLZW(s) {
+  if (s.type==='lzw-extend') {
+    document.querySelectorAll('[id^="lzw-c-"]').forEach(b=>b.classList.remove('active','done'));
+    s.curr.split('').forEach((_,k)=>{
+      const box=document.getElementById(`lzw-c-${s.pos-s.curr.length+k}`);
+      if(box) box.classList.add('active');
+    });
+  } else if (s.type==='lzw-emit') {
+    for(let k=0;k<s.curr.length;k++){const b=document.getElementById(`lzw-c-${s.pos-s.curr.length-(s.next?1:0)+k}`);if(b){b.classList.remove('active');b.classList.add('done');}}
+    const strip=document.getElementById('lzw-codes'); if(strip){const sp=document.createElement('span');sp.className='out-code new';sp.title=`'${s.curr}'→${s.code}`;sp.textContent=s.code;strip.appendChild(sp);}
+    if(s.np&&s.nc){const tb=document.getElementById('lzw-dict-body');if(tb){const tr=document.createElement('tr');tr.className='new-entry';tr.innerHTML=`<td style="color:var(--green)">${s.nc}</td><td>${s.np}</td><td style="color:var(--muted)">${s.stepNum}</td>`;tb.appendChild(tr);tb.scrollTop=tb.scrollHeight;}}
+    const ib=document.getElementById('lzw-iter-body');if(ib){const tr=document.createElement('tr');tr.innerHTML=`<td style="color:var(--muted)">${s.stepNum}</td><td style="color:var(--blue)">${s.curr}</td><td style="color:var(--amber)">${s.next||'—'}</td><td style="color:var(--purple)">${s.code}</td><td style="color:var(--green)">${s.np?`${s.nc}='${s.np}'`:'—'}</td>`;ib.appendChild(tr);ib.parentElement.scrollTop=ib.parentElement.scrollHeight;}
+  } else if (s.type==='lzw-done') { setMetrics(s.origLen*8,s.numCodes*12,'bits'); }
+}
+
+// ============================================================
+// BWT
+// ============================================================
+function buildBWT(txt) {
+  const input = txt+'$';
+  const descEl = document.createElement('div');
+  descEl.className = 'desc-panel';
+  descEl.innerHTML = `<p><strong>Algorithm:</strong> (1) Append '$' sentinel. (2) Generate all n rotations. (3) Sort them lexicographically. (4) The last column is the BWT output. Reversible using the first + last columns.</p>
+    <p><strong>Why it helps:</strong> The output clusters identical characters together, making subsequent RLE or entropy coding far more effective. Core of bzip2.</p>
+    <div class="complexity-row">
+      <span class="complexity-badge">Time <span>O(n log n)</span></span>
+      <span class="complexity-badge">Space <span>O(n²)</span></span>
+      <span class="complexity-badge">Type <span>Reversible Transform</span></span>
+    </div>`;
+  document.getElementById('viz-canvas').appendChild(descEl);
+
+  const rotSec = document.createElement('div');
+  rotSec.innerHTML = '<div class="sec-hdr">All rotations (unsorted)</div>';
+  const rotWrap = document.createElement('div'); rotWrap.className='matrix-wrap'; rotWrap.id='bwt-unsorted';
+  rotSec.appendChild(rotWrap);
+  document.getElementById('viz-canvas').appendChild(rotSec);
+
+  const sortSec = document.createElement('div');
+  sortSec.innerHTML = '<div class="sec-hdr">Sorted rotations — last column highlighted</div>';
+  const sortWrap = document.createElement('div'); sortWrap.className='matrix-wrap'; sortWrap.id='bwt-sorted';
+  sortSec.appendChild(sortWrap);
+  document.getElementById('viz-canvas').appendChild(sortSec);
+
+  const outSec = document.createElement('div');
+  outSec.innerHTML = '<div class="sec-hdr">BWT output (last column)</div>';
+  const outArr = document.createElement('div'); outArr.className='char-array'; outArr.id='bwt-output';
+  outSec.appendChild(outArr);
+  document.getElementById('viz-canvas').appendChild(outSec);
+
+  const rotations=[];
+  for(let i=0;i<input.length;i++) rotations.push(input.slice(i)+input.slice(0,i));
+  const sorted=[...rotations].sort();
+  const lastCol=sorted.map(r=>r[r.length-1]);
+  const origIdx=sorted.indexOf(input);
+
+  steps=[];
+  steps.push({type:'bwt-unsorted',rotations,log:`Generated ${rotations.length} rotations of "${input}"`});
+  steps.push({type:'bwt-sorted',sorted,lastCol,origIdx,log:'Sorted all rotations lexicographically'});
+  lastCol.forEach((c,i)=>steps.push({type:'bwt-highlight',col:lastCol,idx:i,origIdx,log:`Row ${i} last char: '${c}'${i===origIdx?' ← original string':''}`}));
+  steps.push({type:'bwt-output',lastCol,origIdx,log:`BWT output: "${lastCol.join('')}" (original at row ${origIdx})`});
+  steps.push({type:'bwt-done',input,log:'Transform complete'});
+  updateCounter();
+}
+
+function renderMatrix(id, rows, origIdx=-1) {
+  const wrap=document.getElementById(id); if(!wrap) return;
+  wrap.innerHTML='';
+  const matrix=document.createElement('div'); matrix.className='matrix';
+  rows.forEach((row,ri)=>{
+    const rowDiv=document.createElement('div'); rowDiv.className='matrix-row'+(ri===origIdx?' active-row':'');
+    const lbl=document.createElement('div'); lbl.className='matrix-row-label'; lbl.textContent=ri;
+    rowDiv.appendChild(lbl);
+    row.split('').forEach((ch,ci)=>{
+      const cell=document.createElement('div');
+      cell.className='matrix-cell'+(ci===row.length-1?' highlight':'')+(ri===origIdx?' sorted':'');
+      cell.textContent=ch; rowDiv.appendChild(cell);
+    });
+    matrix.appendChild(rowDiv);
+  });
+  wrap.appendChild(matrix);
+}
+
+function applyBWT(s) {
+  if (s.type==='bwt-unsorted') { renderMatrix('bwt-unsorted',s.rotations); }
+  else if (s.type==='bwt-sorted') { renderMatrix('bwt-sorted',s.sorted,s.origIdx); }
+  else if (s.type==='bwt-output') {
+    const arr=document.getElementById('bwt-output'); if(!arr) return;
+    s.lastCol.forEach((c,i)=>{
+      const box=document.createElement('div'); box.className='char-box '+(i===s.origIdx?'active':'done');
+      box.textContent=c; arr.appendChild(box);
+    });
+  } else if (s.type==='bwt-done') {
+    const lc=steps.find(s=>s.type==='bwt-output')?.lastCol||[];
+    const runs=lc.reduce((n,c,i,a)=>i>0&&c===a[i-1]?n:n+1,0);
+    setMetrics(lc.length,runs,'unique runs');
+  }
+}
+
+// ============================================================
+// COMPARE
+// ============================================================
+function renderCompare() {
+  const txt=getInput();
+  const canvas=document.getElementById('viz-canvas');
+  canvas.innerHTML='';
+
+  const rle=(()=>{
+    let out='',i=0;
+    while(i<txt.length){let j=i;while(j<txt.length&&txt[j]===txt[i])j++;out+=j-i===1?txt[i]:txt[i]+(j-i);i=j;}
+    return {orig:txt.length,comp:out.length,unit:'chars',name:'RLE',color:'#388bfd'};
+  })();
+
+  const huff=(()=>{
+    const freq={};for(const c of txt)freq[c]=(freq[c]||0)+1;
+    let nodes=Object.keys(freq).map(c=>({c,f:freq[c],l:null,r:null}));
+    nodes.sort((a,b)=>a.f-b.f);
+    while(nodes.length>1){const a=nodes.shift(),b=nodes.shift();nodes.push({c:'*',f:a.f+b.f,l:a,r:b});nodes.sort((a,b)=>a.f-b.f);}
+    const codes={};
+    function gen(n,code){if(!n)return;if(!n.l&&!n.r){codes[n.c]=code||'0';return;}gen(n.l,code+'0');gen(n.r,code+'1');}
+    gen(nodes[0],'');
+    const bits=txt.split('').reduce((s,c)=>s+codes[c].length,0);
+    return {orig:txt.length*8,comp:bits,unit:'bits',name:'Huffman',color:'#d29922'};
+  })();
+
+  const lzw=(()=>{
+    const dict={};for(let i=0;i<256;i++)dict[String.fromCharCode(i)]=i;
+    let nxt=256,curr=txt[0],pos=1,codes=0;
+    while(pos<=txt.length){const next=pos<txt.length?txt[pos]:null;if(next&&dict[curr+next]!==undefined){curr+=next;pos++;}else{codes++;if(next)dict[curr+next]=nxt++;curr=next||'';pos++;}}
+    return {orig:txt.length*8,comp:codes*12,unit:'bits',name:'LZW',color:'#bc8cff'};
+  })();
+
+  const bwt=(()=>{
+    const input=txt+'$';const rotations=[];
+    for(let i=0;i<input.length;i++)rotations.push(input.slice(i)+input.slice(0,i));
+    const sorted=[...rotations].sort();
+    const lc=sorted.map(r=>r[r.length-1]);
+    const runs=lc.reduce((n,c,i,a)=>i>0&&c===a[i-1]?n:n+1,0);
+    return {orig:lc.length,comp:runs,unit:'unique runs',name:'BWT',color:'#f0883e',note:'(lower = more compressible)'};
+  })();
+
+  const results=[rle,huff,lzw,bwt];
+
+  const titleEl=document.createElement('div');
+  titleEl.innerHTML=`<div class="sec-hdr">Comparing all algorithms on: "${txt}"</div>`;
+  canvas.appendChild(titleEl);
+
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px';
+  results.forEach(r=>{
+    const ratio=r.orig>0?r.comp/r.orig:1;
+    const saved=Math.round((1-ratio)*100);
+    const card=document.createElement('div'); card.className='compare-card';
+    card.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px';
+    card.innerHTML=`<h3 style="color:${r.color};font-size:14px;font-weight:600;margin-bottom:12px">${r.name}</h3>
+      <div style="font-size:12px;color:var(--muted);margin:4px 0;font-family:var(--mono)">Original: <span style="color:var(--text)">${r.orig} ${r.unit}</span></div>
+      <div style="font-size:12px;color:var(--muted);margin:4px 0;font-family:var(--mono)">Output: <span style="color:var(--text)">${r.comp} ${r.unit}</span></div>
+      <div style="height:10px;background:var(--bg3);border-radius:5px;overflow:hidden;margin:8px 0">
+        <div style="height:100%;width:${Math.min(100,ratio*100)}%;background:${r.color};border-radius:5px;opacity:0.75"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">Saved: <span style="color:${saved>0?'var(--green)':'var(--red)'}">${saved}%</span></div>
+      ${r.note?`<div style="font-size:11px;color:var(--muted);margin-top:6px">${r.note}</div>`:''}`;
+    grid.appendChild(card);
+  });
+  canvas.appendChild(grid);
+
+  const chartSec=document.createElement('div');
+  chartSec.innerHTML='<div class="sec-hdr" style="margin-top:4px">Compression ratio (relative to original)</div>';
+  const chartDiv=document.createElement('div');
+  chartDiv.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px';
+  results.forEach(r=>{
+    const ratio=r.orig>0?r.comp/r.orig:1;
+    const pct=Math.min(100,ratio*100);
+    const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:12px;font-size:13px';
+    row.innerHTML=`<span style="width:80px;color:${r.color};font-weight:600">${r.name}</span>
+      <div style="flex:1;height:20px;background:var(--bg3);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${r.color};border-radius:4px;opacity:0.7"></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:12px;color:var(--muted);min-width:55px;text-align:right">${Math.round((1-(r.comp/r.orig))*100)}% saved</span>`;
+    chartDiv.appendChild(row);
+  });
+  chartSec.appendChild(chartDiv);
+  canvas.appendChild(chartSec);
+
+  const note=document.createElement('div'); note.className='desc-panel';
+  note.innerHTML=`<p><strong>Note on units:</strong> RLE is compared in characters; Huffman and LZW in bits (8 bits = 1 char); BWT shows unique run count (a proxy for compressibility). Short or random inputs may not compress well — try "AAAAAABBBBBCCCC" for RLE or "MISSISSIPPI" for BWT.</p>
+    <p><strong>Theoretical limit:</strong> Shannon entropy is the lower bound. Huffman gets within 1 bit/symbol of optimal. LZW is asymptotically optimal for repetitive data. BWT is a transform, not a compressor — its output feeds into RLE/entropy coding.</p>`;
+  canvas.appendChild(note);
+}
+
+// ===== INIT =====
+buildSteps();
+</script>
+</body>
+</html>
